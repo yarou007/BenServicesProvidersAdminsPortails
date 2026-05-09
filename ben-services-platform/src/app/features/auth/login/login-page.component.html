@@ -1,0 +1,34 @@
+<section class="login-shell">
+  <mat-card class="login-card">
+    <div class="login-header">
+      <div class="logo">BS</div>
+      <div>
+        <h1>Ben's Services Provider Platform</h1>
+        <p>Sign in to manage provider coverage and market readiness.</p>
+      </div>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="signIn()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" autocomplete="email" />
+        <mat-error *ngIf="loginForm.controls.email.hasError('required')">Email is required.</mat-error>
+        <mat-error *ngIf="loginForm.controls.email.hasError('email')">Enter a valid email address.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput formControlName="password" type="password" autocomplete="current-password" />
+        <mat-error *ngIf="loginForm.controls.password.hasError('required')">Password is required.</mat-error>
+        <mat-error *ngIf="loginForm.controls.password.hasError('minlength')">Minimum 6 characters.</mat-error>
+      </mat-form-field>
+
+      <div class="form-row">
+        <mat-checkbox formControlName="rememberMe">Remember me</mat-checkbox>
+        <a routerLink="/login" class="link">Forgot password?</a>
+      </div>
+
+      <button mat-flat-button color="primary" class="sign-in-button" type="submit">Sign in</button>
+    </form>
+  </mat-card>
+</section>

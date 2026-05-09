@@ -1,0 +1,88 @@
+.regions-page {
+  display: grid;
+  gap: 1.05rem;
+}
+
+.regions-page h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.regions-page p {
+  margin: 0.3rem 0 0;
+  color: #64748b;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.summary {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.summary p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.summary strong {
+  font-size: 1.5rem;
+}
+
+.ready {
+  border-left: 6px solid #22c55e;
+}
+
+.almost {
+  border-left: 6px solid #84cc16;
+}
+
+.needs {
+  border-left: 6px solid #f59e0b;
+}
+
+.not-ready {
+  border-left: 6px solid #ef4444;
+}
+
+.charts-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.chart-box {
+  position: relative;
+  min-height: 290px;
+}
+
+.table-shell {
+  border: 1px solid #d7e1ef;
+  background: #fff;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 1180px;
+}
+
+@media (max-width: 760px) {
+  .summary strong {
+    font-size: 1.25rem;
+  }
+
+  .chart-box {
+    min-height: 250px;
+  }
+}

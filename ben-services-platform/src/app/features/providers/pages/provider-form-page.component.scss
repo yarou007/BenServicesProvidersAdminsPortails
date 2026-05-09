@@ -1,0 +1,66 @@
+.provider-form-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.provider-form-page h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.provider-form-page p {
+  margin: 0.3rem 0 0;
+  color: #64748b;
+}
+
+mat-card {
+  border-radius: 14px;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem;
+}
+
+.field-span-2 {
+  grid-column: span 2;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+@media (max-width: 800px) {
+  .field-span-2 {
+    grid-column: span 1;
+  }
+
+  .form-actions {
+    justify-content: stretch;
+  }
+
+  .form-actions a,
+  .form-actions button {
+    flex: 1;
+  }
+}

@@ -1,0 +1,56 @@
+.provider-details {
+  display: grid;
+  gap: 1rem;
+}
+
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.details-header h1 {
+  margin: 0;
+}
+
+.details-header p {
+  margin: 0.3rem 0 0;
+  color: #475569;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.details-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.history-card {
+  grid-column: 1 / -1;
+}
+
+.map-placeholder {
+  margin-top: 0.6rem;
+  border: 1px dashed #93c5fd;
+  border-radius: 12px;
+  padding: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.not-found {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1rem;
+}

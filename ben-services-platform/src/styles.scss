@@ -1,0 +1,92 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$app-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$blue-palette,
+      tertiary: mat.$cyan-palette
+    ),
+    typography: (
+      plain-family: 'Plus Jakarta Sans',
+      brand-family: 'Plus Jakarta Sans'
+    ),
+    density: (
+      scale: 0
+    )
+  )
+);
+
+@include mat.all-component-themes($app-theme);
+
+:root {
+  --sidebar-navy: #0c2142;
+  --sidebar-navy-soft: #16325f;
+  --surface-bg: #f1f5fb;
+  --surface-bg-alt: #e8eef8;
+  --card-bg: #ffffff;
+  --text-primary: #14233d;
+  --text-muted: #5a6880;
+  --line: #d6dfec;
+  --success: #1f9d63;
+  --warning: #d18819;
+  --danger: #cb3a3a;
+  --info: #2f66d2;
+  --shadow-soft: 0 12px 28px rgba(17, 35, 68, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(59, 130, 246, 0.1), transparent 30%),
+    radial-gradient(circle at 92% 12%, rgba(20, 184, 166, 0.08), transparent 34%),
+    linear-gradient(165deg, var(--surface-bg), var(--surface-bg-alt));
+  color: var(--text-primary);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+}
+
+mat-card {
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+}
+
+.mat-mdc-table {
+  background: #fff;
+}
+
+.mat-mdc-header-cell {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3c4c66;
+}
+
+.mat-mdc-row:hover {
+  background: #f8fbff;
+}

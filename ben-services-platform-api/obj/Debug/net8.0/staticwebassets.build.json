@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "sm8y4c22MebCDLFZJThffHjBn9ZO1PPgr6wWCsUiwnY=",
+  "Source": "BenServicesPlatform.Api",
+  "BasePath": "_content/BenServicesPlatform.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

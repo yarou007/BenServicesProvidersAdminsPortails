@@ -1,0 +1,137 @@
+<section class="regions-page">
+  <header>
+    <h1>Regions / Market Analysis</h1>
+    <p>Measure coverage readiness and identify where to launch local SEO and ad campaigns.</p>
+  </header>
+
+  <div class="summary-grid" *ngIf="summary$ | async as summary">
+    <mat-card class="summary ready">
+      <mat-icon>check_circle</mat-icon>
+      <div>
+        <p>Ready for Marketing</p>
+        <strong>{{ summary.ready }}</strong>
+      </div>
+    </mat-card>
+
+    <mat-card class="summary almost">
+      <mat-icon>trending_up</mat-icon>
+      <div>
+        <p>Almost Ready</p>
+        <strong>{{ summary.almostReady }}</strong>
+      </div>
+    </mat-card>
+
+    <mat-card class="summary needs">
+      <mat-icon>warning</mat-icon>
+      <div>
+        <p>Needs More Providers</p>
+        <strong>{{ summary.needsMore }}</strong>
+      </div>
+    </mat-card>
+
+    <mat-card class="summary not-ready">
+      <mat-icon>location_off</mat-icon>
+      <div>
+        <p>Not Ready</p>
+        <strong>{{ summary.notReady }}</strong>
+      </div>
+    </mat-card>
+  </div>
+
+  <div class="charts-grid">
+    <app-chart-card title="Readiness Status Distribution" subtitle="Share of cities by readiness status">
+      <div class="chart-box">
+        @if (pieChart$ | async; as pieChart) {
+          <canvas baseChart [data]="pieChart" [type]="'pie'" [options]="pieChartOptions"></canvas>
+        }
+      </div>
+    </app-chart-card>
+
+    <app-chart-card title="Providers by City" subtitle="Total provider count for each city">
+      <div class="chart-box">
+        @if (providersByCityChart$ | async; as providersByCityChart) {
+          <canvas baseChart [data]="providersByCityChart" [type]="'bar'" [options]="barChartOptions"></canvas>
+        }
+      </div>
+    </app-chart-card>
+
+    <app-chart-card title="Readiness Scores by City" subtitle="Composite score based on provider quality and availability">
+      <div class="chart-box">
+        @if (readinessScoresChart$ | async; as readinessScoresChart) {
+          <canvas baseChart [data]="readinessScoresChart" [type]="'bar'" [options]="barChartOptions"></canvas>
+        }
+      </div>
+    </app-chart-card>
+  </div>
+
+  <section class="table-shell">
+    <div class="table-wrap">
+      @if (coverageRows$ | async; as coverageRows) {
+      <table mat-table [dataSource]="coverageRows">
+        <ng-container matColumnDef="city">
+          <th mat-header-cell *matHeaderCellDef>City</th>
+          <td mat-cell *matCellDef="let row">{{ row.city }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="state">
+          <th mat-header-cell *matHeaderCellDef>State</th>
+          <td mat-cell *matCellDef="let row">{{ row.state }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="region">
+          <th mat-header-cell *matHeaderCellDef>Region</th>
+          <td mat-cell *matCellDef="let row">{{ row.region }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="locksmithCount">
+          <th mat-header-cell *matHeaderCellDef>Locksmith Count</th>
+          <td mat-cell *matCellDef="let row">{{ row.locksmithCount }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="glassCount">
+          <th mat-header-cell *matHeaderCellDef>Glass Provider Count</th>
+          <td mat-cell *matCellDef="let row">{{ row.glassCount }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="totalProviders">
+          <th mat-header-cell *matHeaderCellDef>Total Providers</th>
+          <td mat-cell *matCellDef="let row">{{ row.totalProviders }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="verifiedProviders">
+          <th mat-header-cell *matHeaderCellDef>Verified Providers</th>
+          <td mat-cell *matCellDef="let row">{{ row.verifiedProviders }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="emergencyProviders">
+          <th mat-header-cell *matHeaderCellDef>24/7 Providers</th>
+          <td mat-cell *matCellDef="let row">{{ row.emergencyProviders }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="serviceDiversity">
+          <th mat-header-cell *matHeaderCellDef>Service Diversity</th>
+          <td mat-cell *matCellDef="let row">{{ row.serviceDiversity }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="readinessScore">
+          <th mat-header-cell *matHeaderCellDef>Readiness Score</th>
+          <td mat-cell *matCellDef="let row">{{ row.readinessScore }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row"><app-status-badge [label]="row.status" /></td>
+        </ng-container>
+
+        <ng-container matColumnDef="recommendedAction">
+          <th mat-header-cell *matHeaderCellDef>Recommended Action</th>
+          <td mat-cell *matCellDef="let row">{{ row.recommendedAction }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+      }
+    </div>
+  </section>
+</section>

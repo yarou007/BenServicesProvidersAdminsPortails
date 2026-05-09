@@ -1,0 +1,73 @@
+.dashboard-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.8rem;
+}
+
+.charts-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.chart-box {
+  position: relative;
+  min-height: 280px;
+}
+
+.dashboard-lower-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+}
+
+.table-card {
+  min-height: 100%;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  padding: 0.4rem 1rem 1rem;
+}
+
+table {
+  width: 100%;
+}
+
+th {
+  color: #334155;
+}
+
+.action-stack {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.insights-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.65rem;
+  color: #1f2937;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.quick-actions a {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-lower-grid {
+    grid-template-columns: 1fr;
+  }
+}

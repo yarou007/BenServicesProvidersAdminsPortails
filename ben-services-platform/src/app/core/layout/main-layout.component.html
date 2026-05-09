@@ -1,0 +1,85 @@
+<mat-sidenav-container class="layout-shell">
+  <mat-sidenav
+    class="sidebar"
+    [mode]="sidenavMode()"
+    [opened]="sidenavOpened()"
+    [fixedInViewport]="isHandset()"
+    [autoFocus]="false"
+  >
+    <div class="sidebar-inner">
+      <div class="brand-block">
+        <div class="brand-logo">BS</div>
+        <div>
+          <p class="brand-title">Ben's Services</p>
+          <p class="brand-subtitle">Provider Platform</p>
+        </div>
+      </div>
+
+      <mat-nav-list class="nav-list">
+        @for (item of navItems; track item.route) {
+          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-nav-link" (click)="closeSidebarIfMobile()">
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <span matListItemTitle>{{ item.label }}</span>
+          </a>
+        }
+      </mat-nav-list>
+
+      <div class="sidebar-footer">
+        <mat-icon>insights</mat-icon>
+        <p>Track coverage and launch readiness by market in one workspace.</p>
+      </div>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-content">
+    <mat-toolbar class="topbar">
+      <div class="topbar-leading">
+        <button *ngIf="isHandset()" mat-icon-button (click)="toggleSidebar()" aria-label="Open menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+
+        <div class="topbar-context">
+          <p>Workspace</p>
+          <h2>{{ activeSection() }}</h2>
+        </div>
+      </div>
+
+      <form class="topbar-search" (ngSubmit)="onSearch()" role="search">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-icon matPrefix>search</mat-icon>
+          <input
+            matInput
+            [formControl]="searchControl"
+            placeholder="Quick search provider, city or region"
+            aria-label="Quick search"
+          />
+        </mat-form-field>
+      </form>
+
+      <div class="topbar-actions">
+        <button mat-icon-button matBadge="3" matBadgeColor="warn" aria-label="Notifications">
+          <mat-icon>notifications</mat-icon>
+        </button>
+
+        <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-button">
+          <mat-icon>account_circle</mat-icon>
+          <span>Admin User</span>
+        </button>
+        <mat-menu #profileMenu="matMenu">
+          <button mat-menu-item routerLink="/settings">
+            <mat-icon>settings</mat-icon>
+            <span>Settings</span>
+          </button>
+          <button mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Sign out</span>
+          </button>
+        </mat-menu>
+      </div>
+    </mat-toolbar>
+
+    <main class="content-area">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

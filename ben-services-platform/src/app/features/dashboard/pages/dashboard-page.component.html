@@ -1,0 +1,113 @@
+<section class="dashboard-page">
+  <div class="kpi-grid" *ngIf="kpiCards$ | async as cards">
+    @for (card of cards; track card.title) {
+      <app-kpi-card
+        [title]="card.title"
+        [value]="card.value"
+        [icon]="card.icon"
+        [accent]="card.accent"
+        [changeLabel]="card.changeLabel"
+        [isNegative]="card.isNegative || false"
+      />
+    }
+  </div>
+
+  <div class="charts-grid">
+    <app-chart-card title="Providers by Service Type" subtitle="Distribution across locksmith, glass, and hybrid teams">
+      <div class="chart-box">
+        @if (providersByServiceChart$ | async; as serviceChart) {
+          <canvas baseChart [data]="serviceChart" [type]="'doughnut'" [options]="chartOptions"></canvas>
+        }
+      </div>
+    </app-chart-card>
+
+    <app-chart-card title="Providers by City" subtitle="Current provider volume by city">
+      <div class="chart-box">
+        @if (providersByCityChart$ | async; as cityChart) {
+          <canvas baseChart [data]="cityChart" [type]="'bar'" [options]="chartOptions"></canvas>
+        }
+      </div>
+    </app-chart-card>
+  </div>
+
+  <div class="dashboard-lower-grid">
+    <mat-card class="table-card">
+      <mat-card-header>
+        <mat-card-title>Coverage Readiness</mat-card-title>
+      </mat-card-header>
+
+      <div class="table-wrap">
+        @if (readinessRows$ | async; as readinessRows) {
+        <table mat-table [dataSource]="readinessRows">
+          <ng-container matColumnDef="city">
+            <th mat-header-cell *matHeaderCellDef>City</th>
+            <td mat-cell *matCellDef="let row">{{ row.city }}, {{ row.state }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="locksmith">
+            <th mat-header-cell *matHeaderCellDef>Locksmiths</th>
+            <td mat-cell *matCellDef="let row">{{ row.locksmithCount }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="glass">
+            <th mat-header-cell *matHeaderCellDef>Glass</th>
+            <td mat-cell *matCellDef="let row">{{ row.glassCount }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="total">
+            <th mat-header-cell *matHeaderCellDef>Total</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalProviders }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row"><app-status-badge [label]="row.status" /></td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="readinessColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: readinessColumns"></tr>
+        </table>
+        }
+      </div>
+    </mat-card>
+
+    <div class="action-stack">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Marketing Opportunity Insights</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <ul *ngIf="insights$ | async as insights" class="insights-list">
+            @for (insight of insights; track insight) {
+              <li>{{ insight }}</li>
+            }
+          </ul>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Quick Actions</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="quick-actions">
+          <a mat-stroked-button routerLink="/providers/add">
+            <mat-icon>person_add</mat-icon>
+            Add Provider
+          </a>
+          <a mat-stroked-button routerLink="/applications">
+            <mat-icon>assignment</mat-icon>
+            Review Applications
+          </a>
+          <a mat-stroked-button routerLink="/reports">
+            <mat-icon>download</mat-icon>
+            Export CSV
+          </a>
+          <a mat-stroked-button routerLink="/reports">
+            <mat-icon>bar_chart</mat-icon>
+            View Reports
+          </a>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</section>

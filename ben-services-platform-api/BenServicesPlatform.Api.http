@@ -1,0 +1,6 @@
+@BenServicesPlatform.Api_HostAddress = http://localhost:0
+
+GET {{BenServicesPlatform.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

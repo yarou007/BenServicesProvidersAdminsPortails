@@ -1,0 +1,87 @@
+.applications-page {
+  display: grid;
+  gap: 1.05rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+p {
+  margin: 0.3rem 0 0;
+  color: #58667d;
+}
+
+.table-shell {
+  border: 1px solid #d7e1ef;
+  border-radius: 15px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 860px;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.applications-cards {
+  display: grid;
+  gap: 0.72rem;
+  padding: 0.82rem;
+}
+
+.application-card {
+  border: 1px solid #dce5f3;
+  border-radius: 14px;
+  background: #fbfdff;
+  padding: 0.82rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.application-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.application-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.application-head p {
+  margin: 0.24rem 0 0;
+  font-size: 0.85rem;
+}
+
+.application-body {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.application-body p {
+  margin: 0;
+  color: #334155;
+  font-size: 0.84rem;
+}
+
+.application-actions {
+  display: flex;
+  gap: 0.44rem;
+  flex-wrap: wrap;
+}
+
+.application-actions button {
+  flex: 1;
+  min-width: 110px;
+}

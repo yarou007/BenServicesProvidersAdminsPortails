@@ -1,0 +1,112 @@
+<section class="apply-page">
+  <mat-card class="apply-card">
+    <header class="apply-header">
+      <h1>Join Our Service Provider Network</h1>
+      <p>Grow with Ben's Services by joining our locksmith and glass repair partner network.</p>
+    </header>
+
+    <form [formGroup]="applicationForm" (ngSubmit)="submitApplication()" novalidate>
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Full Name</mat-label>
+          <input matInput formControlName="fullName" />
+          <mat-error *ngIf="applicationForm.controls.fullName.hasError('required')">Full name is required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Business Name</mat-label>
+          <input matInput formControlName="businessName" />
+          <mat-error *ngIf="applicationForm.controls.businessName.hasError('required')">
+            Business name is required.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Phone</mat-label>
+          <input matInput formControlName="phone" placeholder="(123) 456-7890" />
+          <mat-error *ngIf="applicationForm.controls.phone.hasError('required')">Phone is required.</mat-error>
+          <mat-error *ngIf="applicationForm.controls.phone.hasError('pattern')">Enter a valid phone number.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" />
+          <mat-error *ngIf="applicationForm.controls.email.hasError('required')">Email is required.</mat-error>
+          <mat-error *ngIf="applicationForm.controls.email.hasError('email')">Enter a valid email.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Service Category</mat-label>
+          <mat-select formControlName="serviceType">
+            <mat-option value="Locksmith">Locksmith</mat-option>
+            <mat-option value="Glass">Glass</mat-option>
+            <mat-option value="Both">Both</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Services Offered</mat-label>
+          <mat-select formControlName="servicesOffered" multiple>
+            @for (service of serviceOptions; track service) {
+              <mat-option [value]="service">{{ service }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>City / Cities Covered</mat-label>
+          <mat-select formControlName="citiesCovered" multiple>
+            @for (city of cityOptions; track city) {
+              <mat-option [value]="city">{{ city }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>State</mat-label>
+          <mat-select formControlName="state">
+            @for (state of stateOptions; track state) {
+              <mat-option [value]="state">{{ state }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>ZIP Codes Covered</mat-label>
+          <input matInput formControlName="zipCodes" placeholder="76010, 76011" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Years of Experience</mat-label>
+          <input matInput type="number" formControlName="yearsOfExperience" min="0" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Working Hours</mat-label>
+          <input matInput formControlName="workingHours" placeholder="24/7 or 8:00 AM - 6:00 PM" />
+        </mat-form-field>
+
+        <div class="checkbox-wrap">
+          <mat-checkbox formControlName="emergencyService">Emergency Availability</mat-checkbox>
+        </div>
+
+        <div class="file-field span-2">
+          <label for="license-upload">Optional License/Insurance Upload</label>
+          <input id="license-upload" type="file" (change)="onFileSelected($event)" />
+          <small *ngIf="applicationForm.controls.licenseFileName.value">
+            Selected: {{ applicationForm.controls.licenseFileName.value }}
+          </small>
+        </div>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Message / Notes</mat-label>
+          <textarea matInput formControlName="message" rows="4"></textarea>
+        </mat-form-field>
+      </div>
+
+      <button mat-flat-button color="primary" type="submit">Submit Application</button>
+
+      <p class="success" *ngIf="submitted">Application Submitted! Thank you for applying to join our network.</p>
+    </form>
+  </mat-card>
+</section>

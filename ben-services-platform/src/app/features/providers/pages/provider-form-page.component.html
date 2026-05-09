@@ -1,0 +1,193 @@
+<section class="provider-form-page">
+  <header>
+    <h1>{{ editingProviderId ? 'Edit Provider' : 'Add Provider' }}</h1>
+    <p>Capture provider details, coverage, and verification metadata.</p>
+  </header>
+
+  <mat-card>
+    <form [formGroup]="providerForm" (ngSubmit)="saveProvider()" novalidate>
+      <mat-accordion multi>
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Personal & Business Info</mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Full Name</mat-label>
+              <input matInput formControlName="fullName" />
+              <mat-error *ngIf="providerForm.controls.fullName.hasError('required')">Full name is required.</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Business Name</mat-label>
+              <input matInput formControlName="businessName" />
+              <mat-error *ngIf="providerForm.controls.businessName.hasError('required')">Business name is required.</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Phone</mat-label>
+              <input matInput formControlName="phone" placeholder="(123) 456-7890" />
+              <mat-error *ngIf="providerForm.controls.phone.hasError('required')">Phone is required.</mat-error>
+              <mat-error *ngIf="providerForm.controls.phone.hasError('pattern')">Use a valid US phone format.</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input matInput type="email" formControlName="email" />
+              <mat-error *ngIf="providerForm.controls.email.hasError('required')">Email is required.</mat-error>
+              <mat-error *ngIf="providerForm.controls.email.hasError('email')">Enter a valid email address.</mat-error>
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Service Info</mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Service Type</mat-label>
+              <mat-select formControlName="serviceType">
+                <mat-option value="Locksmith">Locksmith</mat-option>
+                <mat-option value="Glass">Glass</mat-option>
+                <mat-option value="Both">Both</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field-span-2">
+              <mat-label>Services Offered</mat-label>
+              <mat-select formControlName="servicesOffered" multiple>
+                @for (service of serviceOptions; track service) {
+                  <mat-option [value]="service">{{ service }}</mat-option>
+                }
+              </mat-select>
+              <mat-error *ngIf="providerForm.controls.servicesOffered.hasError('required')">
+                Select at least one service.
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="chip-row" *ngIf="providerForm.controls.servicesOffered.value.length">
+            @for (service of providerForm.controls.servicesOffered.value; track service) {
+              <mat-chip>{{ service }}</mat-chip>
+            }
+          </div>
+        </mat-expansion-panel>
+
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Coverage</mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline" class="field-span-2">
+              <mat-label>Cities Covered</mat-label>
+              <mat-select formControlName="citiesCovered" multiple>
+                @for (city of cityOptions; track city) {
+                  <mat-option [value]="city">{{ city }}</mat-option>
+                }
+              </mat-select>
+              <mat-error *ngIf="providerForm.controls.citiesCovered.hasError('required')">
+                Select at least one city.
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>State</mat-label>
+              <mat-select formControlName="state">
+                @for (state of stateOptions; track state) {
+                  <mat-option [value]="state">{{ state }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>ZIP Codes Covered</mat-label>
+              <input matInput formControlName="zipCodes" placeholder="76010, 76011" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Region</mat-label>
+              <mat-select formControlName="region">
+                @for (region of regionOptions; track region) {
+                  <mat-option [value]="region">{{ region }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Availability</mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Availability</mat-label>
+              <input matInput formControlName="availability" placeholder="Daily, Weekdays, Weekends..." />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Working Hours</mat-label>
+              <input matInput formControlName="workingHours" placeholder="24/7 or 8:00 AM - 6:00 PM" />
+            </mat-form-field>
+
+            <div class="toggle-wrap">
+              <mat-slide-toggle formControlName="emergencyService">Emergency Service</mat-slide-toggle>
+            </div>
+          </div>
+        </mat-expansion-panel>
+
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Verification & Source</mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Status</mat-label>
+              <mat-select formControlName="verificationStatus">
+                <mat-option value="New">New</mat-option>
+                <mat-option value="Contacted">Contacted</mat-option>
+                <mat-option value="Verified">Verified</mat-option>
+                <mat-option value="Active">Active</mat-option>
+                <mat-option value="Inactive">Inactive</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Source</mat-label>
+              <mat-select formControlName="source">
+                <mat-option value="Google">Google</mat-option>
+                <mat-option value="Referral">Referral</mat-option>
+                <mat-option value="Form">Form</mat-option>
+                <mat-option value="Manual">Manual</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Years of Experience</mat-label>
+              <input matInput type="number" formControlName="yearsOfExperience" min="0" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field-span-2">
+              <mat-label>Notes</mat-label>
+              <textarea matInput rows="4" formControlName="notes"></textarea>
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+      </mat-accordion>
+
+      <div class="form-actions">
+        <a mat-stroked-button routerLink="/providers">Cancel</a>
+        <button mat-flat-button color="primary" type="submit">
+          <mat-icon>save</mat-icon>
+          Save Provider
+        </button>
+      </div>
+    </form>
+  </mat-card>
+</section>

@@ -1,0 +1,112 @@
+<section class="provider-details" *ngIf="provider$ | async as provider; else notFound">
+  <header class="details-header">
+    <div>
+      <h1>{{ provider.fullName }}</h1>
+      <p>{{ provider.businessName }} • {{ provider.city }}, {{ provider.state }}</p>
+    </div>
+
+    <div class="header-actions">
+      <a mat-stroked-button [routerLink]="['/providers', provider.id, 'edit']">
+        <mat-icon>edit</mat-icon>
+        Edit
+      </a>
+      <button mat-stroked-button (click)="verifyProvider(provider.id)">
+        <mat-icon>verified</mat-icon>
+        Verify
+      </button>
+      <button mat-stroked-button color="warn" (click)="deactivateProvider(provider.id)">
+        <mat-icon>toggle_off</mat-icon>
+        Deactivate
+      </button>
+      <button mat-stroked-button color="warn" (click)="deleteProvider(provider.id)">
+        <mat-icon>delete</mat-icon>
+        Delete
+      </button>
+      <button mat-flat-button color="primary" (click)="exportProvider(provider.fullName)">
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+    </div>
+  </header>
+
+  <div class="details-grid">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Basic Info</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p><strong>Full Name:</strong> {{ provider.fullName }}</p>
+        <p><strong>Business Name:</strong> {{ provider.businessName }}</p>
+        <p><strong>Phone:</strong> {{ provider.phone }}</p>
+        <p><strong>Email:</strong> {{ provider.email }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Service Info</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p><strong>Service Type:</strong> {{ provider.serviceType }}</p>
+        <p><strong>Services Offered:</strong> {{ provider.servicesOffered.join(', ') }}</p>
+        <p><strong>Emergency Availability:</strong> {{ provider.emergencyService ? 'Yes' : 'No' }}</p>
+        <p><strong>Working Hours:</strong> {{ provider.workingHours }}</p>
+        <p><strong>Notes:</strong> {{ provider.notes || 'N/A' }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Location Coverage</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p><strong>City:</strong> {{ provider.city }}</p>
+        <p><strong>State:</strong> {{ provider.state }}</p>
+        <p><strong>ZIP Codes:</strong> {{ provider.zipCodes.join(', ') }}</p>
+        <p><strong>Region:</strong> {{ provider.region }}</p>
+        <div class="map-placeholder" aria-label="Map placeholder">
+          <mat-icon>map</mat-icon>
+          <span>Map integration placeholder</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Verification & Status</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          <strong>Verification Status:</strong>
+          <app-status-badge [label]="provider.verificationStatus" />
+        </p>
+        <p>
+          <strong>Active Status:</strong>
+          <app-status-badge [label]="provider.isActive ? 'Active' : 'Inactive'" />
+        </p>
+        <p><strong>Source:</strong> {{ provider.source }}</p>
+        <p><strong>Verified At:</strong> {{ provider.verifiedAt ? (provider.verifiedAt | date: 'medium') : 'N/A' }}</p>
+        <p><strong>Admin Comments:</strong> {{ provider.adminComments || 'No comments yet.' }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="history-card">
+      <mat-card-header>
+        <mat-card-title>Activity History</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p><strong>Created:</strong> {{ provider.createdAt | date: 'medium' }}</p>
+        <p><strong>Last Updated:</strong> {{ provider.updatedAt | date: 'medium' }}</p>
+        <p><strong>Status History:</strong> Latest state is <strong>{{ provider.verificationStatus }}</strong>.</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</section>
+
+<ng-template #notFound>
+  <section class="not-found">
+    <h2>Provider not found</h2>
+    <p>The requested provider record could not be loaded.</p>
+    <a mat-flat-button color="primary" routerLink="/providers">Back to Providers</a>
+  </section>
+</ng-template>

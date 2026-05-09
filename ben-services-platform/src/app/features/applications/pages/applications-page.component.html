@@ -1,0 +1,107 @@
+<section class="applications-page">
+  <header>
+    <h1>Applications Review</h1>
+    <p>Review incoming provider applications from the public submission form.</p>
+  </header>
+
+  <section class="table-shell">
+    @if (applications$ | async; as applications) {
+      @if (!isCompact()) {
+        <div class="table-wrap">
+          <table mat-table [dataSource]="applications">
+            <ng-container matColumnDef="applicantName">
+              <th mat-header-cell *matHeaderCellDef>Applicant Name</th>
+              <td mat-cell *matCellDef="let row">{{ row.fullName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="company">
+              <th mat-header-cell *matHeaderCellDef>Company</th>
+              <td mat-cell *matCellDef="let row">{{ row.businessName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="serviceType">
+              <th mat-header-cell *matHeaderCellDef>Service Type</th>
+              <td mat-cell *matCellDef="let row">{{ row.serviceType }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="city">
+              <th mat-header-cell *matHeaderCellDef>City</th>
+              <td mat-cell *matCellDef="let row">{{ row.city }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="state">
+              <th mat-header-cell *matHeaderCellDef>State</th>
+              <td mat-cell *matCellDef="let row">{{ row.state }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="dateSubmitted">
+              <th mat-header-cell *matHeaderCellDef>Date Submitted</th>
+              <td mat-cell *matCellDef="let row">{{ row.submittedAt | date: 'mediumDate' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let row"><app-status-badge [label]="row.status" /></td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let row" class="actions-cell">
+                <button mat-icon-button (click)="viewApplication(row)" aria-label="View application">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                <button mat-icon-button (click)="approveApplication(row.id)" aria-label="Approve application">
+                  <mat-icon>check_circle</mat-icon>
+                </button>
+                <button mat-icon-button (click)="rejectApplication(row.id)" aria-label="Reject application">
+                  <mat-icon>cancel</mat-icon>
+                </button>
+                <button mat-icon-button (click)="requestMoreInfo(row.id)" aria-label="Request more info">
+                  <mat-icon>help</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          </table>
+        </div>
+      } @else {
+        <div class="applications-cards">
+          @for (application of applications; track application.id) {
+            <article class="application-card">
+              <div class="application-head">
+                <div>
+                  <h3>{{ application.fullName }}</h3>
+                  <p>{{ application.businessName }}</p>
+                </div>
+                <app-status-badge [label]="application.status" />
+              </div>
+
+              <div class="application-body">
+                <p><strong>Service:</strong> {{ application.serviceType }}</p>
+                <p><strong>Location:</strong> {{ application.city }}, {{ application.state }}</p>
+                <p><strong>Submitted:</strong> {{ application.submittedAt | date: 'mediumDate' }}</p>
+              </div>
+
+              <div class="application-actions">
+                <button mat-stroked-button (click)="viewApplication(application)">
+                  <mat-icon>visibility</mat-icon>
+                  View
+                </button>
+                <button mat-stroked-button color="primary" (click)="approveApplication(application.id)">
+                  <mat-icon>check_circle</mat-icon>
+                  Approve
+                </button>
+                <button mat-stroked-button color="warn" (click)="rejectApplication(application.id)">
+                  <mat-icon>cancel</mat-icon>
+                  Reject
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    }
+  </section>
+</section>
