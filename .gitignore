@@ -1,2 +1,5 @@
 .local-node/
-.local-node/
+node_modules/
+dist/
+.angular/
+.env
