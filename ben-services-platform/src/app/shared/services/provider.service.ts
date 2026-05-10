@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
 import { API_BASE_URL } from '../../core/config/api.config';
+import { AuthService } from '../../core/services/auth.service';
 import { Provider, ProviderFilters, VerificationStatus } from '../models/provider.model';
 
 export interface ProviderCreateInput {
@@ -44,12 +45,15 @@ export interface ProviderKpis {
 })
 export class ProviderService {
   private readonly httpClient = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly providersSubject = new BehaviorSubject<Provider[]>([]);
 
   readonly providers$ = this.providersSubject.asObservable();
 
   constructor() {
-    this.refreshProviders().subscribe();
+    if (this.authService.isAuthenticated()) {
+      this.refreshProviders().subscribe();
+    }
   }
 
   refreshProviders(): Observable<Provider[]> {

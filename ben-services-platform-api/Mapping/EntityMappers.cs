@@ -114,4 +114,21 @@ public static class EntityMappers
             LicenseFileName = string.IsNullOrWhiteSpace(request.LicenseFileName) ? null : request.LicenseFileName.Trim()
         };
     }
+
+    public static AdminResponseDto ToDto(this AdminEntity entity)
+    {
+        return new AdminResponseDto
+        {
+            Id = entity.Id,
+            FullName = entity.FullName,
+            Email = entity.Email,
+            Username = entity.Username,
+            Role = entity.Role,
+            IsActive = entity.IsActive,
+            MustChangePassword = entity.MustChangePassword,
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt,
+            CreatedByAdminId = entity.CreatedByAdminId
+        };
+    }
 }

@@ -1,50 +1,143 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable, map, tap } from 'rxjs';
+import { API_BASE_URL } from '../config/api.config';
+import { AdminUser } from '../models/admin.model';
 
-const AUTH_STORAGE_KEY = 'ben_services_platform_auth';
+interface LoginResponse {
+  token: string;
+  admin: AdminUser;
+}
+
+interface ChangePasswordResponse {
+  message: string;
+  admin: AdminUser;
+}
+
+const AUTH_TOKEN_STORAGE_KEY = 'ben_services_platform_auth_token';
+const AUTH_ADMIN_STORAGE_KEY = 'ben_services_platform_auth_admin';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly loggedIn = signal(false);
+  private readonly httpClient = inject(HttpClient);
 
-  readonly isLoggedIn = computed(() => this.loggedIn());
+  private readonly tokenSignal = signal<string | null>(null);
+  private readonly adminSignal = signal<AdminUser | null>(null);
+
+  readonly isLoggedIn = computed(() => !!this.tokenSignal());
+  readonly currentAdmin = computed(() => this.adminSignal());
 
   constructor() {
-    const isPersisted = this.safeReadStorage();
-    this.loggedIn.set(isPersisted);
+    this.restoreSession();
   }
 
-  login(email: string, password: string, rememberMe: boolean): boolean {
-    if (!email || !password) {
-      return false;
-    }
+  login(login: string, password: string): Observable<AdminUser> {
+    return this.httpClient.post<LoginResponse>(`${API_BASE_URL}/auth/login`, { login, password }).pipe(
+      tap((response) => this.setSession(response.token, response.admin)),
+      map((response) => response.admin)
+    );
+  }
 
-    this.loggedIn.set(true);
+  refreshCurrentUser(): Observable<AdminUser> {
+    return this.httpClient.get<AdminUser>(`${API_BASE_URL}/auth/me`).pipe(tap((admin) => this.setCurrentAdmin(admin)));
+  }
 
-    if (rememberMe) {
-      localStorage.setItem(AUTH_STORAGE_KEY, 'true');
-    } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    }
-
-    return true;
+  changePassword(currentPassword: string, newPassword: string, confirmPassword: string): Observable<AdminUser> {
+    return this.httpClient
+      .post<ChangePasswordResponse>(`${API_BASE_URL}/auth/change-password`, {
+        currentPassword,
+        newPassword,
+        confirmPassword
+      })
+      .pipe(
+        tap((response) => this.setCurrentAdmin(response.admin)),
+        map((response) => response.admin)
+      );
   }
 
   logout(): void {
-    this.loggedIn.set(false);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    this.clearSession();
+  }
+
+  getCurrentUser(): AdminUser | null {
+    return this.adminSignal();
   }
 
   isAuthenticated(): boolean {
-    return this.loggedIn();
+    return !!this.tokenSignal();
   }
 
-  private safeReadStorage(): boolean {
+  getToken(): string | null {
+    return this.tokenSignal();
+  }
+
+  hasRole(role: string): boolean {
+    return this.adminSignal()?.role === role;
+  }
+
+  mustChangePassword(): boolean {
+    return this.adminSignal()?.mustChangePassword ?? false;
+  }
+
+  clearSession(): void {
+    this.tokenSignal.set(null);
+    this.adminSignal.set(null);
+
+    this.safeStorageWrite(() => {
+      localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+      localStorage.removeItem(AUTH_ADMIN_STORAGE_KEY);
+    });
+  }
+
+  private setSession(token: string, admin: AdminUser): void {
+    this.tokenSignal.set(token);
+    this.adminSignal.set(admin);
+
+    this.safeStorageWrite(() => {
+      localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+      localStorage.setItem(AUTH_ADMIN_STORAGE_KEY, JSON.stringify(admin));
+    });
+  }
+
+  private setCurrentAdmin(admin: AdminUser): void {
+    this.adminSignal.set(admin);
+
+    this.safeStorageWrite(() => {
+      localStorage.setItem(AUTH_ADMIN_STORAGE_KEY, JSON.stringify(admin));
+    });
+  }
+
+  private restoreSession(): void {
+    this.safeStorageRead(() => {
+      const token = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+      const adminRaw = localStorage.getItem(AUTH_ADMIN_STORAGE_KEY);
+
+      if (!token || !adminRaw) {
+        return;
+      }
+
+      const admin = JSON.parse(adminRaw) as AdminUser;
+      this.tokenSignal.set(token);
+      this.adminSignal.set(admin);
+    });
+  }
+
+  private safeStorageRead(callback: () => void): void {
     try {
-      return localStorage.getItem(AUTH_STORAGE_KEY) === 'true';
+      callback();
     } catch {
-      return false;
+      this.tokenSignal.set(null);
+      this.adminSignal.set(null);
+    }
+  }
+
+  private safeStorageWrite(callback: () => void): void {
+    try {
+      callback();
+    } catch {
+      // Ignore storage errors (private mode/quota), auth still works in-memory.
     }
   }
 }

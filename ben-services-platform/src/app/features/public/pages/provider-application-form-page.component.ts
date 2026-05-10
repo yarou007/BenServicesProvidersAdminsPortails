@@ -98,8 +98,6 @@ export class ProviderApplicationFormPageComponent {
 
     this.applicationService.submitApplication(payload).subscribe({
       next: () => {
-        console.log('Provider application submitted:', payload);
-
         this.submitted = true;
         this.applicationForm.reset({
           fullName: '',

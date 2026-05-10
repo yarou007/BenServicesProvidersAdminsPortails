@@ -1,14 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -17,13 +16,10 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    RouterLink,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
-    MatCheckboxModule,
     MatButtonModule,
-    MatIconModule,
     MatSnackBarModule
   ],
   templateUrl: './login-page.component.html',
@@ -36,10 +32,12 @@ export class LoginPageComponent {
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
 
+  protected readonly loading = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
+
   protected readonly loginForm = this.formBuilder.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-    rememberMe: [true]
+    login: ['', [Validators.required]],
+    password: ['', [Validators.required, Validators.minLength(8)]]
   });
 
   protected signIn(): void {
@@ -48,19 +46,32 @@ export class LoginPageComponent {
       return;
     }
 
-    const { email, password, rememberMe } = this.loginForm.getRawValue();
-    const success = this.authService.login(email, password, rememberMe);
+    const { login, password } = this.loginForm.getRawValue();
+    this.loading.set(true);
+    this.errorMessage.set(null);
 
-    if (!success) {
-      this.snackBar.open('Unable to sign in. Check your credentials and try again.', 'Close', {
-        duration: 3000
-      });
-      return;
+    this.authService.login(login, password).subscribe({
+      next: (admin) => {
+        this.loading.set(false);
+
+        this.snackBar.open('Signed in successfully.', 'Close', {
+          duration: 1800
+        });
+
+        this.router.navigate([admin.mustChangePassword ? '/change-password' : '/dashboard']);
+      },
+      error: (error: unknown) => {
+        this.loading.set(false);
+        this.errorMessage.set(this.resolveErrorMessage(error));
+      }
+    });
+  }
+
+  private resolveErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
+      return error.error.message;
     }
 
-    this.snackBar.open('Welcome back! Redirecting to your dashboard.', 'Close', {
-      duration: 2000
-    });
-    this.router.navigate(['/dashboard']);
+    return 'Unable to sign in. Check your credentials and try again.';
   }
 }

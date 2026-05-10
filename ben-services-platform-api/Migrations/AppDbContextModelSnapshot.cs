@@ -22,6 +22,71 @@ namespace BenServicesPlatform.Api.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("BenServicesPlatform.Api.Entities.AdminEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("CreatedByAdminId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByAdminId");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Role");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("admins", (string)null);
+                });
+
             modelBuilder.Entity("BenServicesPlatform.Api.Entities.ProviderApplicationEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -252,6 +317,21 @@ namespace BenServicesPlatform.Api.Migrations
                     b.HasIndex("VerificationStatus");
 
                     b.ToTable("providers", (string)null);
+                });
+
+            modelBuilder.Entity("BenServicesPlatform.Api.Entities.AdminEntity", b =>
+                {
+                    b.HasOne("BenServicesPlatform.Api.Entities.AdminEntity", "CreatedByAdmin")
+                        .WithMany("CreatedAdmins")
+                        .HasForeignKey("CreatedByAdminId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByAdmin");
+                });
+
+            modelBuilder.Entity("BenServicesPlatform.Api.Entities.AdminEntity", b =>
+                {
+                    b.Navigation("CreatedAdmins");
                 });
 #pragma warning restore 612, 618
         }

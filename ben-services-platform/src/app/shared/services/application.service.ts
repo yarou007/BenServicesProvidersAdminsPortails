@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, map, of, tap, throwError } from 'rxjs';
 import { API_BASE_URL } from '../../core/config/api.config';
+import { AuthService } from '../../core/services/auth.service';
 import { ProviderApplication } from '../models/application.model';
 import { ProviderService } from './provider.service';
 
@@ -10,13 +11,16 @@ import { ProviderService } from './provider.service';
 })
 export class ApplicationService {
   private readonly httpClient = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly providerService = inject(ProviderService);
   private readonly applicationsSubject = new BehaviorSubject<ProviderApplication[]>([]);
 
   readonly applications$ = this.applicationsSubject.asObservable();
 
   constructor() {
-    this.refreshApplications().subscribe();
+    if (this.authService.isAuthenticated()) {
+      this.refreshApplications().subscribe();
+    }
   }
 
   refreshApplications(): Observable<ProviderApplication[]> {

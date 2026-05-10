@@ -1,5 +1,5 @@
 import { AsyncPipe, CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -35,7 +35,7 @@ import { RegionAnalysisService } from '../../../shared/services/region-analysis.
   styleUrl: './dashboard-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DashboardPageComponent {
+export class DashboardPageComponent implements OnInit {
   private readonly providerService = inject(ProviderService);
   private readonly applicationService = inject(ApplicationService);
   private readonly regionAnalysisService = inject(RegionAnalysisService);
@@ -174,4 +174,9 @@ export class DashboardPageComponent {
       ];
     })
   );
+
+  ngOnInit(): void {
+    this.providerService.refreshProviders().subscribe();
+    this.applicationService.refreshApplications().subscribe();
+  }
 }

@@ -137,3 +137,11 @@
 /home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/obj/Debug/net8.0/BenServicesPlatform.Api.genruntimeconfig.cache
 /home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/obj/Debug/net8.0/ref/BenServicesPlatform.Api.dll
 /home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/obj/Debug/net8.0/BenServicesPlatform.Api.sourcelink.json
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/bin/Debug/net8.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/bin/Debug/net8.0/Microsoft.IdentityModel.Abstractions.dll
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/bin/Debug/net8.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/bin/Debug/net8.0/Microsoft.IdentityModel.Logging.dll
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.dll
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/bin/Debug/net8.0/Microsoft.IdentityModel.Tokens.dll
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/bin/Debug/net8.0/System.IdentityModel.Tokens.Jwt.dll
