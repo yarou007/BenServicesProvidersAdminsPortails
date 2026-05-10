@@ -173,7 +173,7 @@
       </div>
     } @else {
       <div class="providers-cards">
-        @for (provider of filteredProviders; track provider.id) {
+        @for (provider of paginatedProviders; track provider.id) {
           <article
             class="provider-row-card"
             [class.lead-new]="getLeadStatus(provider) === 'New'"
@@ -257,6 +257,90 @@
               </mat-menu>
             </div>
           </article>
+        }
+      </div>
+
+      <div class="providers-pagination" aria-live="polite">
+        <p class="providers-pagination__summary">
+          Showing {{ paginationStart }}&ndash;{{ paginationEnd }} of {{ filteredProviders.length }} providers
+        </p>
+
+        @if (hasMultiplePages) {
+          <nav class="providers-pagination__controls" aria-label="Providers pagination">
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="firstPage()"
+              [disabled]="!canGoPrevious"
+              aria-label="Go to first page"
+            >
+              <mat-icon>first_page</mat-icon>
+            </button>
+
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="previousPage()"
+              [disabled]="!canGoPrevious"
+              aria-label="Go to previous page"
+            >
+              <mat-icon>chevron_left</mat-icon>
+              Previous
+            </button>
+
+            <div class="providers-pagination__pages">
+              @if (showLeadingFirstPage) {
+                <button mat-stroked-button type="button" (click)="goToPage(1)">1</button>
+              }
+
+              @if (showLeadingEllipsis) {
+                <span class="pagination-ellipsis" aria-hidden="true">&hellip;</span>
+              }
+
+              @for (page of visiblePageNumbers; track page) {
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="page-number"
+                  [class.page-number--active]="page === currentPage"
+                  [disabled]="page === currentPage"
+                  (click)="goToPage(page)"
+                  [attr.aria-current]="page === currentPage ? 'page' : null"
+                >
+                  {{ page }}
+                </button>
+              }
+
+              @if (showTrailingEllipsis) {
+                <span class="pagination-ellipsis" aria-hidden="true">&hellip;</span>
+              }
+
+              @if (showTrailingLastPage) {
+                <button mat-stroked-button type="button" (click)="goToPage(totalPages)">{{ totalPages }}</button>
+              }
+            </div>
+
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="nextPage()"
+              [disabled]="!canGoNext"
+              aria-label="Go to next page"
+            >
+              Next
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="lastPage()"
+              [disabled]="!canGoNext"
+              aria-label="Go to last page"
+            >
+              <mat-icon>last_page</mat-icon>
+            </button>
+          </nav>
         }
       </div>
     }

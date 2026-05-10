@@ -41,6 +41,7 @@ export class ProvidersListPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
+  private previousFiltersSignature = '';
 
   protected readonly stateOptions = STATE_OPTIONS;
   protected readonly cityOptions = CITY_OPTIONS;
@@ -65,10 +66,17 @@ export class ProvidersListPageComponent {
   });
 
   protected filteredProviders: Provider[] = [];
+  protected paginatedProviders: Provider[] = [];
   protected totalProvidersCount = 0;
   protected activeProvidersCount = 0;
   protected verifiedProvidersCount = 0;
   protected pendingProvidersCount = 0;
+  protected currentPage = 1;
+  protected readonly pageSize = 5;
+  protected totalPages = 1;
+  protected paginationStart = 0;
+  protected paginationEnd = 0;
+  protected visiblePageNumbers: number[] = [];
 
   constructor() {
     combineLatest([
@@ -86,18 +94,28 @@ export class ProvidersListPageComponent {
             this.filtersForm.patchValue({ search: query }, { emitEvent: false });
           }
 
-          return {
+          const filters = {
             ...formValue,
             search: searchValue
           } as ProviderFilters;
+
+          return {
+            filters,
+            filtersSignature: this.getFiltersSignature(filters)
+          };
         }),
-        switchMap((filters) => this.providerService.filterProviders(filters)),
+        switchMap(({ filters, filtersSignature }) =>
+          this.providerService.filterProviders(filters).pipe(map((providers) => ({ providers, filtersSignature })))
+        ),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((providers) => {
+      .subscribe(({ providers, filtersSignature }) => {
         const allProviders = this.providerService.getProvidersSnapshot();
+        const sortedProviders = this.getSortedProviders(providers);
+        const shouldResetPage = filtersSignature !== this.previousFiltersSignature;
 
-        this.filteredProviders = providers;
+        this.previousFiltersSignature = filtersSignature;
+        this.filteredProviders = sortedProviders;
         this.totalProvidersCount = allProviders.length;
         this.activeProvidersCount = allProviders.filter((provider) => provider.isActive).length;
         this.verifiedProvidersCount = allProviders.filter((provider) => this.isVerified(provider)).length;
@@ -105,6 +123,12 @@ export class ProvidersListPageComponent {
           const leadStatus = this.getLeadStatus(provider);
           return leadStatus === 'New' || leadStatus === 'Contacted';
         }).length;
+
+        if (shouldResetPage) {
+          this.currentPage = 1;
+        }
+
+        this.updatePagination();
       });
 
     this.providerService.refreshProviders().pipe(take(1), takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -115,6 +139,88 @@ export class ProvidersListPageComponent {
 
   protected toggleAdvancedFilters(): void {
     this.showAdvancedFilters.update((value) => !value);
+  }
+
+  protected updatePagination(): void {
+    const totalResults = this.filteredProviders.length;
+
+    this.totalPages = Math.max(1, Math.ceil(totalResults / this.pageSize));
+    this.currentPage = Math.min(Math.max(this.currentPage, 1), this.totalPages);
+
+    if (!totalResults) {
+      this.paginationStart = 0;
+      this.paginationEnd = 0;
+      this.paginatedProviders = [];
+      this.visiblePageNumbers = [];
+      return;
+    }
+
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+
+    this.paginatedProviders = this.filteredProviders.slice(startIndex, endIndex);
+    this.paginationStart = startIndex + 1;
+    this.paginationEnd = Math.min(endIndex, totalResults);
+    this.visiblePageNumbers = this.buildVisiblePageNumbers();
+  }
+
+  protected goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) {
+      return;
+    }
+
+    this.currentPage = page;
+    this.updatePagination();
+  }
+
+  protected nextPage(): void {
+    this.goToPage(this.currentPage + 1);
+  }
+
+  protected previousPage(): void {
+    this.goToPage(this.currentPage - 1);
+  }
+
+  protected firstPage(): void {
+    this.goToPage(1);
+  }
+
+  protected lastPage(): void {
+    this.goToPage(this.totalPages);
+  }
+
+  protected get hasMultiplePages(): boolean {
+    return this.totalPages > 1;
+  }
+
+  protected get canGoPrevious(): boolean {
+    return this.currentPage > 1;
+  }
+
+  protected get canGoNext(): boolean {
+    return this.currentPage < this.totalPages;
+  }
+
+  protected get showLeadingFirstPage(): boolean {
+    return this.visiblePageNumbers.length > 0 && this.visiblePageNumbers[0] > 1;
+  }
+
+  protected get showTrailingLastPage(): boolean {
+    return (
+      this.visiblePageNumbers.length > 0 &&
+      this.visiblePageNumbers[this.visiblePageNumbers.length - 1] < this.totalPages
+    );
+  }
+
+  protected get showLeadingEllipsis(): boolean {
+    return this.visiblePageNumbers.length > 0 && this.visiblePageNumbers[0] > 2;
+  }
+
+  protected get showTrailingEllipsis(): boolean {
+    return (
+      this.visiblePageNumbers.length > 0 &&
+      this.visiblePageNumbers[this.visiblePageNumbers.length - 1] < this.totalPages - 1
+    );
   }
 
   protected get hasActiveFilters(): boolean {
@@ -379,5 +485,33 @@ export class ProvidersListPageComponent {
 
   private escapeCsv(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
+  }
+
+  private buildVisiblePageNumbers(): number[] {
+    if (this.totalPages <= 1) {
+      return [];
+    }
+
+    if (this.totalPages <= 7) {
+      return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+    }
+
+    const maxVisibleAroundCurrent = 5;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(this.totalPages, start + maxVisibleAroundCurrent - 1);
+
+    if (end - start + 1 < maxVisibleAroundCurrent) {
+      start = Math.max(1, end - maxVisibleAroundCurrent + 1);
+    }
+
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  }
+
+  private getFiltersSignature(filters: ProviderFilters): string {
+    return JSON.stringify(filters);
+  }
+
+  private getSortedProviders(providers: Provider[]): Provider[] {
+    return [...providers];
   }
 }
