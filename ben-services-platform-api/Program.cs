@@ -16,7 +16,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AngularApp", policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200")
+            .WithOrigins(
+                "http://localhost:4200",
+                "https://ben-services-providers-admins-portails-971pky84o.vercel.app",
+                "https://ben-services-providers-admins-porta.vercel.app"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -28,13 +32,11 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseCors("AngularApp");
+
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
