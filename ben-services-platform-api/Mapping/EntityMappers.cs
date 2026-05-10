@@ -29,13 +29,17 @@ public static class EntityMappers
             YearsOfExperience = entity.YearsOfExperience,
             Notes = entity.Notes,
             AdminComments = entity.AdminComments,
+            HasW9File = !string.IsNullOrWhiteSpace(entity.W9FilePath),
+            HasCoiFile = !string.IsNullOrWhiteSpace(entity.CoiFilePath),
+            W9UploadedAt = entity.W9UploadedAt,
+            CoiUploadedAt = entity.CoiUploadedAt,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
             VerifiedAt = entity.VerifiedAt
         };
     }
 
-    public static void ApplyUpdate(this ProviderEntity entity, ProviderUpsertRequest request)
+    public static void ApplyUpdate(this ProviderEntity entity, IProviderUpsertPayload request)
     {
         entity.FullName = request.FullName.Trim();
         entity.BusinessName = request.BusinessName.Trim();

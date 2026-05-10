@@ -33,6 +33,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(item => item.Source).HasMaxLength(32).IsRequired();
             entity.Property(item => item.Notes).HasMaxLength(2000);
             entity.Property(item => item.AdminComments).HasMaxLength(2000);
+            entity.Property(item => item.W9FilePath).HasMaxLength(500);
+            entity.Property(item => item.CoiFilePath).HasMaxLength(500);
+            entity.Property(item => item.W9UploadedAt).HasColumnType("datetime(6)");
+            entity.Property(item => item.CoiUploadedAt).HasColumnType("datetime(6)");
             entity.Property(item => item.CreatedAt).HasColumnType("datetime(6)");
             entity.Property(item => item.UpdatedAt).HasColumnType("datetime(6)");
             entity.Property(item => item.VerifiedAt).HasColumnType("datetime(6)");

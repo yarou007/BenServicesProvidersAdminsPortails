@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { take } from 'rxjs';
+import { of, switchMap, take } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -16,7 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CITY_OPTIONS as LEGACY_CITY_OPTIONS, SERVICE_OPTIONS } from '../../../shared/services/mock-data';
 import { Provider } from '../../../shared/models/provider.model';
-import { ProviderService } from '../../../shared/services/provider.service';
+import { ProviderCreateInput, ProviderService } from '../../../shared/services/provider.service';
 
 const PRIMARY_MARKET_STATES = ['DC', 'VA', 'MD', 'NY'] as const;
 type MarketState = (typeof PRIMARY_MARKET_STATES)[number];
@@ -92,6 +92,9 @@ const REGION_BY_STATE: Record<MarketState, string> = {
 const MARKET_REGION_OPTIONS = Array.from(new Set(Object.values(REGION_BY_STATE)));
 const STATES_MARKER = 'States:';
 const CITIES_MARKER = 'Covers:';
+const MAX_DOCUMENT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png']);
+const ALLOWED_DOCUMENT_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']);
 
 @Component({
   selector: 'app-provider-form-page',
@@ -125,11 +128,20 @@ export class ProviderFormPageComponent implements OnInit {
   private lastSuggestedRegion: string | null = null;
 
   protected readonly serviceOptions = SERVICE_OPTIONS;
+  protected readonly acceptedDocumentFormats = '.pdf,.jpg,.jpeg,.png';
   protected stateOptions: string[] = [...PRIMARY_MARKET_STATES];
   protected regionOptions: string[] = [...MARKET_REGION_OPTIONS];
   protected cityOptions: string[] = [];
 
   protected editingProviderId: number | null = null;
+  protected w9File: File | null = null;
+  protected coiFile: File | null = null;
+  protected w9FileError = '';
+  protected coiFileError = '';
+  protected w9ExistingFileUrl: string | null = null;
+  protected coiExistingFileUrl: string | null = null;
+  protected w9UploadedAt: string | null = null;
+  protected coiUploadedAt: string | null = null;
 
   protected readonly providerForm = this.formBuilder.nonNullable.group({
     fullName: ['', [Validators.required]],
@@ -161,6 +173,8 @@ export class ProviderFormPageComponent implements OnInit {
     }
 
     const id = Number(idParam);
+    this.editingProviderId = id;
+
     this.providerService.getProviderById(id).pipe(take(1)).subscribe((provider) => {
       if (!provider) {
         return;
@@ -170,27 +184,33 @@ export class ProviderFormPageComponent implements OnInit {
       const coveredStates = this.getCoveredStatesForEdit(provider);
       this.extendLegacyMarketOptions(coveredStates, provider.region);
       this.syncCoverageOptionsForStates(coveredStates, false, coveredCities);
+      this.w9ExistingFileUrl = provider.w9FileUrl ?? null;
+      this.coiExistingFileUrl = provider.coiFileUrl ?? null;
+      this.w9UploadedAt = provider.w9UploadedAt ?? null;
+      this.coiUploadedAt = provider.coiUploadedAt ?? null;
 
-      this.editingProviderId = id;
-      this.providerForm.patchValue({
-        fullName: provider.fullName,
-        businessName: provider.businessName,
-        phone: provider.phone,
-        email: provider.email,
-        serviceType: provider.serviceType,
-        servicesOffered: provider.servicesOffered,
-        citiesCovered: coveredCities,
-        statesCovered: coveredStates,
-        zipCodes: provider.zipCodes.join(', '),
-        region: provider.region,
-        availability: provider.availability,
-        workingHours: provider.workingHours,
-        emergencyService: provider.emergencyService,
-        verificationStatus: provider.verificationStatus,
-        source: provider.source,
-        yearsOfExperience: provider.yearsOfExperience,
-        notes: provider.notes ?? ''
-      }, { emitEvent: false });
+      this.providerForm.patchValue(
+        {
+          fullName: provider.fullName,
+          businessName: provider.businessName,
+          phone: provider.phone,
+          email: provider.email,
+          serviceType: provider.serviceType,
+          servicesOffered: provider.servicesOffered,
+          citiesCovered: coveredCities,
+          statesCovered: coveredStates,
+          zipCodes: provider.zipCodes.join(', '),
+          region: provider.region,
+          availability: provider.availability,
+          workingHours: provider.workingHours,
+          emergencyService: provider.emergencyService,
+          verificationStatus: provider.verificationStatus,
+          source: provider.source,
+          yearsOfExperience: provider.yearsOfExperience,
+          notes: provider.notes ?? ''
+        },
+        { emitEvent: false }
+      );
     });
   }
 
@@ -202,85 +222,112 @@ export class ProviderFormPageComponent implements OnInit {
     return this.hasSelectedStates ? 'Select cities or service areas' : 'Select a state first';
   }
 
+  protected get isCreateMode(): boolean {
+    return this.editingProviderId === null;
+  }
+
+  protected get hasExistingW9Document(): boolean {
+    return !!this.w9ExistingFileUrl;
+  }
+
+  protected get hasExistingCoiDocument(): boolean {
+    return !!this.coiExistingFileUrl;
+  }
+
+  protected get w9UploadButtonLabel(): string {
+    return this.w9File || this.hasExistingW9Document ? 'Replace file' : 'Upload file';
+  }
+
+  protected get coiUploadButtonLabel(): string {
+    return this.coiFile || this.hasExistingCoiDocument ? 'Replace file' : 'Upload file';
+  }
+
+  protected onW9Selected(event: Event): void {
+    this.setDocumentFromInput(event, 'w9');
+  }
+
+  protected onCoiSelected(event: Event): void {
+    this.setDocumentFromInput(event, 'coi');
+  }
+
+  protected removeW9Selection(input: HTMLInputElement): void {
+    this.w9File = null;
+    this.w9FileError = '';
+    input.value = '';
+  }
+
+  protected removeCoiSelection(input: HTMLInputElement): void {
+    this.coiFile = null;
+    this.coiFileError = '';
+    input.value = '';
+  }
+
   protected saveProvider(): void {
     if (this.providerForm.invalid) {
       this.providerForm.markAllAsTouched();
       return;
     }
 
-    const formValue = this.providerForm.getRawValue();
-    const primaryState = formValue.statesCovered[0] ?? '';
-    const zipCodes = formValue.zipCodes
-      .split(',')
-      .map((zip) => zip.trim())
-      .filter(Boolean);
+    if (!this.ensureComplianceDocumentsValidForSubmit()) {
+      return;
+    }
 
-    const primaryCity = formValue.citiesCovered[0] ?? 'Unknown';
-
-    const providerPayload: Omit<Provider, 'id' | 'createdAt' | 'updatedAt'> = {
-      fullName: formValue.fullName,
-      businessName: formValue.businessName,
-      phone: formValue.phone,
-      email: formValue.email,
-      serviceType: formValue.serviceType,
-      servicesOffered: formValue.servicesOffered,
-      city: primaryCity,
-      state: primaryState,
-      zipCodes,
-      region: formValue.region,
-      emergencyService: formValue.emergencyService,
-      availability: formValue.availability,
-      workingHours: formValue.workingHours,
-      verificationStatus: formValue.verificationStatus,
-      isActive: formValue.verificationStatus !== 'Inactive',
-      source: formValue.source,
-      yearsOfExperience: formValue.yearsOfExperience,
-      notes: formValue.notes,
-      adminComments: this.buildCoverageAdminComments(formValue.statesCovered, formValue.citiesCovered),
-      verifiedAt:
-        formValue.verificationStatus === 'Verified' || formValue.verificationStatus === 'Active'
-          ? new Date().toISOString()
-          : undefined
-    };
+    const providerPayload = this.buildProviderPayload();
 
     if (this.editingProviderId) {
-      this.providerService.updateProvider(this.editingProviderId, providerPayload).subscribe({
-        next: () => {
-          this.snackBar.open('Provider updated successfully.', 'Close', { duration: 1900 });
-          this.router.navigate(['/providers']);
-        },
-        error: () => {
-          this.snackBar.open('Update failed. Please try again.', 'Close', { duration: 2300 });
-        }
-      });
-    } else {
-      this.providerService.addProvider(providerPayload).subscribe({
-        next: () => {
-          this.snackBar.open('Provider added successfully.', 'Close', { duration: 1900 });
-          this.router.navigate(['/providers']);
-        },
-        error: () => {
-          this.snackBar.open('Creation failed. Please try again.', 'Close', { duration: 2300 });
-        }
-      });
+      this.providerService
+        .updateProvider(this.editingProviderId, providerPayload)
+        .pipe(
+          switchMap((provider) => {
+            if (!this.w9File && !this.coiFile) {
+              return of(provider);
+            }
+
+            return this.providerService.uploadProviderDocuments(this.editingProviderId!, {
+              w9File: this.w9File,
+              coiFile: this.coiFile
+            });
+          }),
+          take(1)
+        )
+        .subscribe({
+          next: () => {
+            this.snackBar.open('Provider updated successfully.', 'Close', { duration: 1900 });
+            this.router.navigate(['/providers']);
+          },
+          error: (error) => {
+            this.snackBar.open(this.getApiErrorMessage(error, 'Update failed. Please try again.'), 'Close', { duration: 2600 });
+          }
+        });
+      return;
     }
+
+    const createPayload: ProviderCreateInput = {
+      ...providerPayload,
+      w9File: this.w9File!,
+      coiFile: this.coiFile!
+    };
+
+    this.providerService.addProviderWithDocuments(createPayload).pipe(take(1)).subscribe({
+      next: () => {
+        this.snackBar.open('Provider added successfully.', 'Close', { duration: 1900 });
+        this.router.navigate(['/providers']);
+      },
+      error: (error) => {
+        this.snackBar.open(this.getApiErrorMessage(error, 'Creation failed. Please try again.'), 'Close', { duration: 2600 });
+      }
+    });
   }
 
   private initializeCoverageDependencies(): void {
     this.syncCoverageOptionsForStates(this.providerForm.controls.statesCovered.value, false);
 
-    this.providerForm.controls.statesCovered.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((states) => {
-        this.syncCoverageOptionsForStates(states, true);
-      });
+    this.providerForm.controls.statesCovered.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((states) => {
+      this.syncCoverageOptionsForStates(states, true);
+    });
   }
 
-  private syncCoverageOptionsForStates(
-    states: string[],
-    resetDependents: boolean,
-    fallbackCities: string[] = []
-  ): void {
+  private syncCoverageOptionsForStates(states: string[], resetDependents: boolean, fallbackCities: string[] = []): void {
     this.cityOptions = this.getCityOptionsForStates(states, fallbackCities);
 
     if (!states.length) {
@@ -406,5 +453,113 @@ export class ProviderFormPageComponent implements OnInit {
     }
 
     return [];
+  }
+
+  private setDocumentFromInput(event: Event, documentType: 'w9' | 'coi'): void {
+    const input = event.target as HTMLInputElement;
+    const selectedFile = input.files?.item(0);
+
+    if (!selectedFile) {
+      return;
+    }
+
+    const validationError = this.validateDocumentFile(selectedFile);
+    if (validationError) {
+      if (documentType === 'w9') {
+        this.w9File = null;
+        this.w9FileError = validationError;
+      } else {
+        this.coiFile = null;
+        this.coiFileError = validationError;
+      }
+      input.value = '';
+      return;
+    }
+
+    if (documentType === 'w9') {
+      this.w9File = selectedFile;
+      this.w9FileError = '';
+    } else {
+      this.coiFile = selectedFile;
+      this.coiFileError = '';
+    }
+  }
+
+  private ensureComplianceDocumentsValidForSubmit(): boolean {
+    if (this.w9FileError || this.coiFileError) {
+      return false;
+    }
+
+    if (this.isCreateMode) {
+      if (!this.w9File) {
+        this.w9FileError = 'W-9 form is required.';
+      }
+
+      if (!this.coiFile) {
+        this.coiFileError = 'Certificate of Insurance is required.';
+      }
+    }
+
+    return !this.w9FileError && !this.coiFileError;
+  }
+
+  private validateDocumentFile(file: File): string | null {
+    if (file.size > MAX_DOCUMENT_FILE_SIZE_BYTES) {
+      return 'File size must be less than 10 MB.';
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (!extension || !ALLOWED_DOCUMENT_EXTENSIONS.has(extension)) {
+      return 'Only PDF, JPG, and PNG files are allowed.';
+    }
+
+    const normalizedMimeType = file.type.trim().toLowerCase();
+    if (normalizedMimeType && !ALLOWED_DOCUMENT_MIME_TYPES.has(normalizedMimeType)) {
+      return 'Only PDF, JPG, and PNG files are allowed.';
+    }
+
+    return null;
+  }
+
+  private buildProviderPayload(): Omit<Provider, 'id' | 'createdAt' | 'updatedAt'> {
+    const formValue = this.providerForm.getRawValue();
+    const primaryState = formValue.statesCovered[0] ?? '';
+    const zipCodes = formValue.zipCodes
+      .split(',')
+      .map((zip) => zip.trim())
+      .filter(Boolean);
+
+    const primaryCity = formValue.citiesCovered[0] ?? 'Unknown';
+
+    return {
+      fullName: formValue.fullName,
+      businessName: formValue.businessName,
+      phone: formValue.phone,
+      email: formValue.email,
+      serviceType: formValue.serviceType,
+      servicesOffered: formValue.servicesOffered,
+      city: primaryCity,
+      state: primaryState,
+      zipCodes,
+      region: formValue.region,
+      emergencyService: formValue.emergencyService,
+      availability: formValue.availability,
+      workingHours: formValue.workingHours,
+      verificationStatus: formValue.verificationStatus,
+      isActive: formValue.verificationStatus !== 'Inactive',
+      source: formValue.source,
+      yearsOfExperience: formValue.yearsOfExperience,
+      notes: formValue.notes,
+      adminComments: this.buildCoverageAdminComments(formValue.statesCovered, formValue.citiesCovered),
+      verifiedAt:
+        formValue.verificationStatus === 'Verified' || formValue.verificationStatus === 'Active'
+          ? new Date().toISOString()
+          : undefined
+    };
+  }
+
+  private getApiErrorMessage(error: unknown, fallbackMessage: string): string {
+    const apiError = error as { error?: { message?: string } };
+    return apiError?.error?.message ?? fallbackMessage;
   }
 }
