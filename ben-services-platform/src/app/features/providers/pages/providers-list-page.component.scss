@@ -414,6 +414,20 @@
   border: 1px solid #e7edf8;
 }
 
+.status-line--documents {
+  gap: 0.2rem;
+}
+
+.badge--doc {
+  color: #2d6f4e;
+  background: #e8f7ee;
+}
+
+.badge--doc-missing {
+  color: #8a6a22;
+  background: #fff6df;
+}
+
 .provider-row-card__actions {
   display: flex;
   align-items: flex-start;

@@ -25,6 +25,12 @@ export interface Provider {
   yearsOfExperience: number;
   notes?: string;
   adminComments?: string;
+  hasW9File?: boolean;
+  hasCoiFile?: boolean;
+  w9FileUrl?: string;
+  coiFileUrl?: string;
+  w9UploadedAt?: string;
+  coiUploadedAt?: string;
   createdAt: string;
   updatedAt: string;
   verifiedAt?: string;

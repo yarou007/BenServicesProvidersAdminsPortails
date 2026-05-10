@@ -4,6 +4,31 @@ import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap, throw
 import { API_BASE_URL } from '../../core/config/api.config';
 import { Provider, ProviderFilters, VerificationStatus } from '../models/provider.model';
 
+export interface ProviderCreateInput {
+  fullName: string;
+  businessName: string;
+  phone: string;
+  email: string;
+  serviceType: Provider['serviceType'];
+  servicesOffered: string[];
+  city: string;
+  state: string;
+  zipCodes: string[];
+  region: string;
+  emergencyService: boolean;
+  availability: string;
+  workingHours: string;
+  verificationStatus: Provider['verificationStatus'];
+  isActive: boolean;
+  source: Provider['source'];
+  yearsOfExperience: number;
+  notes?: string;
+  adminComments?: string;
+  verifiedAt?: string;
+  w9File: File;
+  coiFile: File;
+}
+
 export interface ProviderKpis {
   totalProviders: number;
   locksmithProviders: number;
@@ -58,6 +83,38 @@ export class ProviderService {
 
   getProvidersSnapshot(): Provider[] {
     return this.providersSubject.value;
+  }
+
+  addProviderWithDocuments(providerInput: ProviderCreateInput): Observable<Provider> {
+    const formData = this.toProviderCreateFormData(providerInput);
+
+    return this.httpClient.post<Provider>(`${API_BASE_URL}/providers`, formData).pipe(
+      tap((provider) => this.upsertProviderInCache(provider)),
+      catchError((error) => {
+        console.error('Failed to create provider', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  uploadProviderDocuments(id: number, documents: { w9File?: File | null; coiFile?: File | null }): Observable<Provider> {
+    const formData = new FormData();
+
+    if (documents.w9File) {
+      formData.append('W9File', documents.w9File, documents.w9File.name);
+    }
+
+    if (documents.coiFile) {
+      formData.append('CoiFile', documents.coiFile, documents.coiFile.name);
+    }
+
+    return this.httpClient.post<Provider>(`${API_BASE_URL}/providers/${id}/documents`, formData).pipe(
+      tap((provider) => this.upsertProviderInCache(provider)),
+      catchError((error) => {
+        console.error('Failed to upload provider documents', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   addProvider(providerInput: Omit<Provider, 'id' | 'createdAt' | 'updatedAt'>): Observable<Provider> {
@@ -229,8 +286,51 @@ export class ProviderService {
   }
 
   private toUpsertPayload(provider: Provider): Omit<Provider, 'id' | 'createdAt' | 'updatedAt'> {
-    const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...payload } = provider;
+    const {
+      id: _id,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      hasW9File: _hasW9File,
+      hasCoiFile: _hasCoiFile,
+      w9FileUrl: _w9FileUrl,
+      coiFileUrl: _coiFileUrl,
+      w9UploadedAt: _w9UploadedAt,
+      coiUploadedAt: _coiUploadedAt,
+      ...payload
+    } = provider;
     return payload;
+  }
+
+  private toProviderCreateFormData(providerInput: ProviderCreateInput): FormData {
+    const formData = new FormData();
+    formData.append('FullName', providerInput.fullName);
+    formData.append('BusinessName', providerInput.businessName);
+    formData.append('Phone', providerInput.phone);
+    formData.append('Email', providerInput.email);
+    formData.append('ServiceType', providerInput.serviceType);
+    providerInput.servicesOffered.forEach((service) => formData.append('ServicesOffered', service));
+    formData.append('City', providerInput.city);
+    formData.append('State', providerInput.state);
+    providerInput.zipCodes.forEach((zip) => formData.append('ZipCodes', zip));
+    formData.append('Region', providerInput.region);
+    formData.append('EmergencyService', String(providerInput.emergencyService));
+    formData.append('Availability', providerInput.availability);
+    formData.append('WorkingHours', providerInput.workingHours);
+    formData.append('VerificationStatus', providerInput.verificationStatus);
+    formData.append('IsActive', String(providerInput.isActive));
+    formData.append('Source', providerInput.source);
+    formData.append('YearsOfExperience', String(providerInput.yearsOfExperience));
+    formData.append('Notes', providerInput.notes ?? '');
+    formData.append('AdminComments', providerInput.adminComments ?? '');
+
+    if (providerInput.verifiedAt) {
+      formData.append('VerifiedAt', providerInput.verifiedAt);
+    }
+
+    formData.append('W9File', providerInput.w9File, providerInput.w9File.name);
+    formData.append('CoiFile', providerInput.coiFile, providerInput.coiFile.name);
+
+    return formData;
   }
 
   private upsertProviderInCache(provider: Provider): void {

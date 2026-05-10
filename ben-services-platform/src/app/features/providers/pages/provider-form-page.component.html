@@ -82,25 +82,29 @@
           </mat-expansion-panel-header>
 
           <div class="form-grid">
-            <mat-form-field appearance="outline" class="field-span-2">
-              <mat-label>Cities Covered</mat-label>
-              <mat-select formControlName="citiesCovered" multiple>
-                @for (city of cityOptions; track city) {
-                  <mat-option [value]="city">{{ city }}</mat-option>
-                }
-              </mat-select>
-              <mat-error *ngIf="providerForm.controls.citiesCovered.hasError('required')">
-                Select at least one city.
-              </mat-error>
-            </mat-form-field>
-
             <mat-form-field appearance="outline">
-              <mat-label>State</mat-label>
-              <mat-select formControlName="state">
+              <mat-label>State / Market</mat-label>
+              <mat-select formControlName="statesCovered" multiple>
                 @for (state of stateOptions; track state) {
                   <mat-option [value]="state">{{ state }}</mat-option>
                 }
               </mat-select>
+              <mat-error *ngIf="providerForm.controls.statesCovered.hasError('required')">
+                Select at least one state or market.
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field-span-2">
+              <mat-label>Cities Covered</mat-label>
+              <mat-select formControlName="citiesCovered" multiple [placeholder]="citiesPlaceholder">
+                @for (city of cityOptions; track city) {
+                  <mat-option [value]="city">{{ city }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint *ngIf="!hasSelectedStates">Please select a state first.</mat-hint>
+              <mat-error *ngIf="providerForm.controls.citiesCovered.hasError('required') && providerForm.controls.citiesCovered.touched">
+                Select at least one city or service area.
+              </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
@@ -177,6 +181,102 @@
               <mat-label>Notes</mat-label>
               <textarea matInput rows="4" formControlName="notes"></textarea>
             </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>Compliance Documents</mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <p class="section-subtitle">
+            Upload required tax and insurance documents for provider verification.
+          </p>
+
+          <div class="compliance-grid">
+            <article class="document-card" [class.document-card--error]="w9FileError">
+              <p class="document-card__title">W-9 Form {{ isCreateMode ? '*' : '' }}</p>
+              <p class="document-card__helper">Accepted formats: PDF, JPG, PNG · Max file size: 10 MB</p>
+
+              <input
+                #w9FileInput
+                class="visually-hidden-input"
+                type="file"
+                [accept]="acceptedDocumentFormats"
+                (change)="onW9Selected($event)"
+              />
+
+              <div class="document-card__actions">
+                <button mat-stroked-button type="button" (click)="w9FileInput.click()">
+                  <mat-icon>{{ w9File || hasExistingW9Document ? 'sync' : 'upload_file' }}</mat-icon>
+                  {{ w9UploadButtonLabel }}
+                </button>
+                @if (w9File) {
+                  <button mat-button type="button" (click)="removeW9Selection(w9FileInput)">Remove</button>
+                }
+              </div>
+
+              @if (w9File) {
+                <p class="document-card__file-name">Selected: {{ w9File.name }}</p>
+              } @else if (hasExistingW9Document) {
+                <p class="document-card__file-name">Current file on record.</p>
+                <a mat-button color="primary" [href]="w9ExistingFileUrl" target="_blank" rel="noopener">
+                  <mat-icon>download</mat-icon>
+                  View current
+                </a>
+                @if (w9UploadedAt) {
+                  <p class="document-card__meta">Uploaded {{ w9UploadedAt | date: 'medium' }}</p>
+                }
+              } @else {
+                <p class="document-card__file-name document-card__file-name--muted">No file selected.</p>
+              }
+
+              @if (w9FileError) {
+                <p class="document-card__error">{{ w9FileError }}</p>
+              }
+            </article>
+
+            <article class="document-card" [class.document-card--error]="coiFileError">
+              <p class="document-card__title">Certificate of Insurance (COI) {{ isCreateMode ? '*' : '' }}</p>
+              <p class="document-card__helper">Accepted formats: PDF, JPG, PNG · Max file size: 10 MB</p>
+
+              <input
+                #coiFileInput
+                class="visually-hidden-input"
+                type="file"
+                [accept]="acceptedDocumentFormats"
+                (change)="onCoiSelected($event)"
+              />
+
+              <div class="document-card__actions">
+                <button mat-stroked-button type="button" (click)="coiFileInput.click()">
+                  <mat-icon>{{ coiFile || hasExistingCoiDocument ? 'sync' : 'upload_file' }}</mat-icon>
+                  {{ coiUploadButtonLabel }}
+                </button>
+                @if (coiFile) {
+                  <button mat-button type="button" (click)="removeCoiSelection(coiFileInput)">Remove</button>
+                }
+              </div>
+
+              @if (coiFile) {
+                <p class="document-card__file-name">Selected: {{ coiFile.name }}</p>
+              } @else if (hasExistingCoiDocument) {
+                <p class="document-card__file-name">Current file on record.</p>
+                <a mat-button color="primary" [href]="coiExistingFileUrl" target="_blank" rel="noopener">
+                  <mat-icon>download</mat-icon>
+                  View current
+                </a>
+                @if (coiUploadedAt) {
+                  <p class="document-card__meta">Uploaded {{ coiUploadedAt | date: 'medium' }}</p>
+                }
+              } @else {
+                <p class="document-card__file-name document-card__file-name--muted">No file selected.</p>
+              }
+
+              @if (coiFileError) {
+                <p class="document-card__error">{{ coiFileError }}</p>
+              }
+            </article>
           </div>
         </mat-expansion-panel>
       </mat-accordion>

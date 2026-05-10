@@ -2,4 +2,4 @@
 node_modules/
 dist/
 .angular/
-.envben-services-platform-api/uploads/
+.env

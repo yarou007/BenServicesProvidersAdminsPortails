@@ -48,6 +48,27 @@
   background: #eff6ff;
 }
 
+.doc-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.16rem 0.5rem;
+  margin-left: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #245f41;
+  background: #def4e8;
+}
+
+.doc-pill--missing {
+  color: #8a5f19;
+  background: #fff1d2;
+}
+
+mat-card-content a[mat-stroked-button] {
+  margin-bottom: 0.45rem;
+}
+
 .not-found {
   background: #fff;
   border: 1px solid #e5e7eb;

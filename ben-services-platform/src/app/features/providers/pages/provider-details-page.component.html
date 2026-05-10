@@ -90,6 +90,45 @@
       </mat-card-content>
     </mat-card>
 
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Compliance Documents</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          <strong>W-9:</strong>
+          <span class="doc-pill" [class.doc-pill--missing]="!provider.hasW9File">
+            {{ provider.hasW9File ? 'Uploaded' : 'Missing' }}
+          </span>
+        </p>
+        @if (provider.w9UploadedAt) {
+          <p><strong>W-9 Uploaded At:</strong> {{ provider.w9UploadedAt | date: 'medium' }}</p>
+        }
+        @if (provider.w9FileUrl) {
+          <a mat-stroked-button color="primary" [href]="provider.w9FileUrl" target="_blank" rel="noopener">
+            <mat-icon>download</mat-icon>
+            Download W-9
+          </a>
+        }
+
+        <p>
+          <strong>COI:</strong>
+          <span class="doc-pill" [class.doc-pill--missing]="!provider.hasCoiFile">
+            {{ provider.hasCoiFile ? 'Uploaded' : 'Missing' }}
+          </span>
+        </p>
+        @if (provider.coiUploadedAt) {
+          <p><strong>COI Uploaded At:</strong> {{ provider.coiUploadedAt | date: 'medium' }}</p>
+        }
+        @if (provider.coiFileUrl) {
+          <a mat-stroked-button color="primary" [href]="provider.coiFileUrl" target="_blank" rel="noopener">
+            <mat-icon>download</mat-icon>
+            Download COI
+          </a>
+        }
+      </mat-card-content>
+    </mat-card>
+
     <mat-card class="history-card">
       <mat-card-header>
         <mat-card-title>Activity History</mat-card-title>

@@ -228,6 +228,14 @@
                   {{ getVerificationLabel(provider) }}
                 </span>
               </div>
+              <div class="status-line status-line--documents">
+                <span class="badge badge--doc" [class.badge--doc-missing]="!provider.hasW9File">
+                  W-9: {{ provider.hasW9File ? 'Uploaded' : 'Missing' }}
+                </span>
+                <span class="badge badge--doc" [class.badge--doc-missing]="!provider.hasCoiFile">
+                  COI: {{ provider.hasCoiFile ? 'Uploaded' : 'Missing' }}
+                </span>
+              </div>
               <p class="added-date">Added {{ provider.createdAt | date: 'MMM d, y' }} at {{ provider.createdAt | date: 'h:mm a' }}</p>
               <span class="badge badge--source-soft" [class.badge--source-manual]="getSourceTone(provider.source) === 'manual'" [class.badge--source-website]="getSourceTone(provider.source) === 'website'" [class.badge--source-referral]="getSourceTone(provider.source) === 'referral'">
                 {{ getSourceLabel(provider.source) }}

@@ -22,6 +22,10 @@ public class ProviderEntity
     public int YearsOfExperience { get; set; }
     public string? Notes { get; set; }
     public string? AdminComments { get; set; }
+    public string? W9FilePath { get; set; }
+    public string? CoiFilePath { get; set; }
+    public DateTime? W9UploadedAt { get; set; }
+    public DateTime? CoiUploadedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? VerifiedAt { get; set; }

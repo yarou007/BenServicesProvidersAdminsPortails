@@ -38,6 +38,81 @@ form {
   gap: 0.4rem;
 }
 
+.section-subtitle {
+  margin: 0 0 0.7rem;
+  color: #5e7395;
+  font-size: 0.85rem;
+}
+
+.compliance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.7rem;
+}
+
+.document-card {
+  border: 1px solid #dbe7f7;
+  border-radius: 12px;
+  background: #f9fbff;
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.document-card--error {
+  border-color: #f2b8b5;
+  background: #fff8f8;
+}
+
+.document-card__title {
+  margin: 0;
+  color: #173a73;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.document-card__helper {
+  margin: 0;
+  color: #607594;
+  font-size: 0.78rem;
+}
+
+.document-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.document-card__file-name {
+  margin: 0;
+  color: #294f86;
+  font-size: 0.79rem;
+  font-weight: 600;
+}
+
+.document-card__file-name--muted {
+  color: #7388a6;
+  font-weight: 500;
+}
+
+.document-card__meta {
+  margin: 0;
+  color: #7186a3;
+  font-size: 0.76rem;
+}
+
+.document-card__error {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.visually-hidden-input {
+  display: none;
+}
+
 .toggle-wrap {
   display: flex;
   align-items: center;
