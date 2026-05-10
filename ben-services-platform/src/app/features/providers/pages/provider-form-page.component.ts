@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,9 +14,84 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { SERVICE_OPTIONS, CITY_OPTIONS, REGION_OPTIONS, STATE_OPTIONS } from '../../../shared/services/mock-data';
+import { CITY_OPTIONS as LEGACY_CITY_OPTIONS, SERVICE_OPTIONS } from '../../../shared/services/mock-data';
 import { Provider } from '../../../shared/models/provider.model';
 import { ProviderService } from '../../../shared/services/provider.service';
+
+const PRIMARY_MARKET_STATES = ['DC', 'VA', 'MD', 'NY'] as const;
+type MarketState = (typeof PRIMARY_MARKET_STATES)[number];
+
+const CITIES_BY_STATE: Record<MarketState, string[]> = {
+  DC: [
+    'Washington DC',
+    'Downtown DC',
+    'Capitol Hill',
+    'Georgetown',
+    'K Street',
+    'NoMa',
+    'Navy Yard',
+    'Shaw',
+    'Dupont Circle'
+  ],
+  VA: [
+    'Arlington',
+    'Alexandria',
+    'Fairfax',
+    'Ballston',
+    'Clarendon',
+    'Courthouse',
+    'Crystal City',
+    'Pentagon City',
+    'Rosslyn',
+    'Shirlington',
+    'Columbia Pike',
+    'Cherrydale',
+    'Lyon Village',
+    'Ashton Heights',
+    'Bluemont',
+    'Westover',
+    'East Falls Church',
+    'Glencarlyn',
+    'Fairlington',
+    'Nauck',
+    'Aurora Highlands',
+    'Alcova Heights',
+    'Arlington Ridge',
+    'Penrose',
+    'Douglas Park'
+  ],
+  MD: [
+    'Baltimore',
+    'Baltimore City',
+    'Baltimore County',
+    'Towson',
+    'Dundalk',
+    'Catonsville',
+    'Essex',
+    'Pikesville',
+    'Parkville',
+    'Glen Burnie',
+    'Downtown Baltimore',
+    'Inner Harbor',
+    'Canton',
+    'Fells Point',
+    'Federal Hill',
+    'Mount Vernon',
+    'Charles Village'
+  ],
+  NY: ['New York City', 'NYC']
+};
+
+const REGION_BY_STATE: Record<MarketState, string> = {
+  DC: 'Washington DC / DMV',
+  VA: 'Northern Virginia / DMV',
+  MD: 'Maryland / Baltimore / DMV',
+  NY: 'New York'
+};
+
+const MARKET_REGION_OPTIONS = Array.from(new Set(Object.values(REGION_BY_STATE)));
+const STATES_MARKER = 'States:';
+const CITIES_MARKER = 'Covers:';
 
 @Component({
   selector: 'app-provider-form-page',
@@ -45,11 +121,13 @@ export class ProviderFormPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
+  private lastSuggestedRegion: string | null = null;
 
   protected readonly serviceOptions = SERVICE_OPTIONS;
-  protected readonly cityOptions = CITY_OPTIONS;
-  protected readonly stateOptions = STATE_OPTIONS;
-  protected readonly regionOptions = REGION_OPTIONS;
+  protected stateOptions: string[] = [...PRIMARY_MARKET_STATES];
+  protected regionOptions: string[] = [...MARKET_REGION_OPTIONS];
+  protected cityOptions: string[] = [];
 
   protected editingProviderId: number | null = null;
 
@@ -61,7 +139,7 @@ export class ProviderFormPageComponent implements OnInit {
     serviceType: ['Locksmith' as Provider['serviceType'], [Validators.required]],
     servicesOffered: [[] as string[], [Validators.required]],
     citiesCovered: [[] as string[], [Validators.required]],
-    state: ['', [Validators.required]],
+    statesCovered: [[] as string[], [Validators.required]],
     zipCodes: ['', [Validators.required]],
     region: ['', [Validators.required]],
     availability: ['Daily', [Validators.required]],
@@ -74,6 +152,8 @@ export class ProviderFormPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.initializeCoverageDependencies();
+
     const idParam = this.route.snapshot.paramMap.get('id');
 
     if (!idParam) {
@@ -86,6 +166,11 @@ export class ProviderFormPageComponent implements OnInit {
         return;
       }
 
+      const coveredCities = this.getCoveredCitiesForEdit(provider);
+      const coveredStates = this.getCoveredStatesForEdit(provider);
+      this.extendLegacyMarketOptions(coveredStates, provider.region);
+      this.syncCoverageOptionsForStates(coveredStates, false, coveredCities);
+
       this.editingProviderId = id;
       this.providerForm.patchValue({
         fullName: provider.fullName,
@@ -94,8 +179,8 @@ export class ProviderFormPageComponent implements OnInit {
         email: provider.email,
         serviceType: provider.serviceType,
         servicesOffered: provider.servicesOffered,
-        citiesCovered: [provider.city],
-        state: provider.state,
+        citiesCovered: coveredCities,
+        statesCovered: coveredStates,
         zipCodes: provider.zipCodes.join(', '),
         region: provider.region,
         availability: provider.availability,
@@ -105,8 +190,16 @@ export class ProviderFormPageComponent implements OnInit {
         source: provider.source,
         yearsOfExperience: provider.yearsOfExperience,
         notes: provider.notes ?? ''
-      });
+      }, { emitEvent: false });
     });
+  }
+
+  protected get hasSelectedStates(): boolean {
+    return this.providerForm.controls.statesCovered.value.length > 0;
+  }
+
+  protected get citiesPlaceholder(): string {
+    return this.hasSelectedStates ? 'Select cities or service areas' : 'Select a state first';
   }
 
   protected saveProvider(): void {
@@ -116,6 +209,7 @@ export class ProviderFormPageComponent implements OnInit {
     }
 
     const formValue = this.providerForm.getRawValue();
+    const primaryState = formValue.statesCovered[0] ?? '';
     const zipCodes = formValue.zipCodes
       .split(',')
       .map((zip) => zip.trim())
@@ -131,7 +225,7 @@ export class ProviderFormPageComponent implements OnInit {
       serviceType: formValue.serviceType,
       servicesOffered: formValue.servicesOffered,
       city: primaryCity,
-      state: formValue.state,
+      state: primaryState,
       zipCodes,
       region: formValue.region,
       emergencyService: formValue.emergencyService,
@@ -142,7 +236,7 @@ export class ProviderFormPageComponent implements OnInit {
       source: formValue.source,
       yearsOfExperience: formValue.yearsOfExperience,
       notes: formValue.notes,
-      adminComments: formValue.citiesCovered.length > 1 ? `Covers: ${formValue.citiesCovered.join(', ')}` : '',
+      adminComments: this.buildCoverageAdminComments(formValue.statesCovered, formValue.citiesCovered),
       verifiedAt:
         formValue.verificationStatus === 'Verified' || formValue.verificationStatus === 'Active'
           ? new Date().toISOString()
@@ -170,5 +264,147 @@ export class ProviderFormPageComponent implements OnInit {
         }
       });
     }
+  }
+
+  private initializeCoverageDependencies(): void {
+    this.syncCoverageOptionsForStates(this.providerForm.controls.statesCovered.value, false);
+
+    this.providerForm.controls.statesCovered.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((states) => {
+        this.syncCoverageOptionsForStates(states, true);
+      });
+  }
+
+  private syncCoverageOptionsForStates(
+    states: string[],
+    resetDependents: boolean,
+    fallbackCities: string[] = []
+  ): void {
+    this.cityOptions = this.getCityOptionsForStates(states, fallbackCities);
+
+    if (!states.length) {
+      this.providerForm.controls.citiesCovered.reset([], { emitEvent: false });
+      this.providerForm.controls.citiesCovered.disable({ emitEvent: false });
+      this.lastSuggestedRegion = null;
+      return;
+    }
+
+    this.providerForm.controls.citiesCovered.enable({ emitEvent: false });
+
+    if (resetDependents) {
+      this.providerForm.controls.citiesCovered.reset([], { emitEvent: false });
+      this.providerForm.controls.zipCodes.reset('', { emitEvent: false });
+    }
+
+    this.suggestRegionForStates(states);
+  }
+
+  private suggestRegionForStates(states: string[]): void {
+    if (states.length !== 1) {
+      return;
+    }
+
+    const suggestedRegion = REGION_BY_STATE[states[0] as MarketState];
+
+    if (!suggestedRegion) {
+      return;
+    }
+
+    const regionControl = this.providerForm.controls.region;
+    const currentRegion = regionControl.value;
+    const canApplySuggestion = !currentRegion || currentRegion === this.lastSuggestedRegion;
+
+    if (canApplySuggestion) {
+      regionControl.setValue(suggestedRegion, { emitEvent: false });
+      this.lastSuggestedRegion = suggestedRegion;
+    }
+  }
+
+  private extendLegacyMarketOptions(states: string[], region: string): void {
+    const unknownStates = states.filter((state) => !!state && !this.stateOptions.includes(state));
+    if (unknownStates.length) {
+      this.stateOptions = [...this.stateOptions, ...unknownStates];
+    }
+
+    if (region && !this.regionOptions.includes(region)) {
+      this.regionOptions = [...this.regionOptions, region];
+    }
+  }
+
+  private buildCoverageAdminComments(statesCovered: string[], citiesCovered: string[]): string {
+    const comments: string[] = [];
+
+    if (statesCovered.length > 1) {
+      comments.push(`${STATES_MARKER} ${statesCovered.join(', ')}`);
+    }
+
+    if (citiesCovered.length > 1) {
+      comments.push(`${CITIES_MARKER} ${citiesCovered.join(', ')}`);
+    }
+
+    return comments.join(' | ');
+  }
+
+  private getCoveredStatesForEdit(provider: Provider): string[] {
+    const coveredFromComments = this.extractListFromComments(provider.adminComments ?? '', STATES_MARKER);
+    const covered = [provider.state, ...coveredFromComments].map((state) => state.trim()).filter(Boolean);
+    return Array.from(new Set(covered));
+  }
+
+  private getCoveredCitiesForEdit(provider: Provider): string[] {
+    const coveredFromComments = this.extractListFromComments(provider.adminComments ?? '', CITIES_MARKER);
+    const covered = [provider.city, ...coveredFromComments].map((city) => city.trim()).filter(Boolean);
+    return Array.from(new Set(covered));
+  }
+
+  private extractListFromComments(adminComments: string, marker: string): string[] {
+    const segments = adminComments
+      .split('|')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const matchingSegment = segments.find((segment) => segment.startsWith(marker));
+
+    if (!matchingSegment) {
+      return adminComments.startsWith(marker)
+        ? adminComments
+            .slice(marker.length)
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : [];
+    }
+
+    return matchingSegment
+      .slice(marker.length)
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  private getCityOptionsForStates(states: string[], fallbackCities: string[] = []): string[] {
+    if (!states.length) {
+      return [];
+    }
+
+    const mappedCities = states.flatMap((state) => CITIES_BY_STATE[state as MarketState] ?? []);
+    if (mappedCities.length) {
+      const uniqueMappedCities = Array.from(new Set(mappedCities));
+      const legacyCitiesForSelection = fallbackCities.filter((city) => !uniqueMappedCities.includes(city));
+      return legacyCitiesForSelection.length ? [...uniqueMappedCities, ...legacyCitiesForSelection] : uniqueMappedCities;
+    }
+
+    if (fallbackCities.length) {
+      return fallbackCities;
+    }
+
+    const hasLegacyState = states.some(
+      (state) => this.stateOptions.includes(state) && !PRIMARY_MARKET_STATES.includes(state as MarketState)
+    );
+    if (hasLegacyState) {
+      return LEGACY_CITY_OPTIONS;
+    }
+
+    return [];
   }
 }

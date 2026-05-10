@@ -82,25 +82,29 @@
           </mat-expansion-panel-header>
 
           <div class="form-grid">
-            <mat-form-field appearance="outline" class="field-span-2">
-              <mat-label>Cities Covered</mat-label>
-              <mat-select formControlName="citiesCovered" multiple>
-                @for (city of cityOptions; track city) {
-                  <mat-option [value]="city">{{ city }}</mat-option>
-                }
-              </mat-select>
-              <mat-error *ngIf="providerForm.controls.citiesCovered.hasError('required')">
-                Select at least one city.
-              </mat-error>
-            </mat-form-field>
-
             <mat-form-field appearance="outline">
-              <mat-label>State</mat-label>
-              <mat-select formControlName="state">
+              <mat-label>State / Market</mat-label>
+              <mat-select formControlName="statesCovered" multiple>
                 @for (state of stateOptions; track state) {
                   <mat-option [value]="state">{{ state }}</mat-option>
                 }
               </mat-select>
+              <mat-error *ngIf="providerForm.controls.statesCovered.hasError('required')">
+                Select at least one state or market.
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field-span-2">
+              <mat-label>Cities Covered</mat-label>
+              <mat-select formControlName="citiesCovered" multiple [placeholder]="citiesPlaceholder">
+                @for (city of cityOptions; track city) {
+                  <mat-option [value]="city">{{ city }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint *ngIf="!hasSelectedStates">Please select a state first.</mat-hint>
+              <mat-error *ngIf="providerForm.controls.citiesCovered.hasError('required') && providerForm.controls.citiesCovered.touched">
+                Select at least one city or service area.
+              </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
