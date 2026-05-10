@@ -147,6 +147,65 @@
   gap: 0.6rem;
 }
 
+.providers-pagination {
+  margin-top: 0.9rem;
+  padding-top: 0.72rem;
+  border-top: 1px solid #e2eaf7;
+  display: grid;
+  gap: 0.56rem;
+}
+
+.providers-pagination__summary {
+  margin: 0;
+  font-size: 0.79rem;
+  color: #4f6790;
+  font-weight: 600;
+}
+
+.providers-pagination__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.providers-pagination__pages {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+}
+
+.providers-pagination__controls button {
+  height: 34px;
+  min-width: 34px;
+  padding-inline: 0.62rem;
+  border-color: #cbd9ee;
+  color: #1f4d96;
+}
+
+.providers-pagination__controls button mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.providers-pagination__controls .page-number--active {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+.providers-pagination__controls .page-number--active[disabled] {
+  opacity: 1;
+}
+
+.pagination-ellipsis {
+  color: #5d7396;
+  padding-inline: 0.15rem;
+  font-weight: 700;
+}
+
 .provider-row-card {
   position: relative;
   display: grid;
@@ -451,5 +510,19 @@
 
   .provider-row-card__actions {
     flex-wrap: wrap;
+  }
+
+  .providers-pagination {
+    gap: 0.7rem;
+  }
+
+  .providers-pagination__controls {
+    gap: 0.5rem;
+  }
+
+  .providers-pagination__controls button {
+    height: 38px;
+    min-width: 38px;
+    font-size: 0.78rem;
   }
 }
