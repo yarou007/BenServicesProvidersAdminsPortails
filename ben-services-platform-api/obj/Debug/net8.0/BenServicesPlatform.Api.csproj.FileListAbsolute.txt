@@ -136,3 +136,4 @@
 /home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/obj/Debug/net8.0/BenServicesPlatform.Api.pdb
 /home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/obj/Debug/net8.0/BenServicesPlatform.Api.genruntimeconfig.cache
 /home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/obj/Debug/net8.0/ref/BenServicesPlatform.Api.dll
+/home/yassine-hammi/Bureau/Ben'sServicesPlatform/ben-services-platform-api/obj/Debug/net8.0/BenServicesPlatform.Api.sourcelink.json

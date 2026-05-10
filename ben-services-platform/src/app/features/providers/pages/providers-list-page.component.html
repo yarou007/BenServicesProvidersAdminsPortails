@@ -1,19 +1,14 @@
 <section class="providers-page">
-  <header class="providers-header">
-    <div class="header-copy">
-      <h1>Providers Directory</h1>
-      <p>Review market coverage, verify quality, and manage locksmith and glass repair partners from one place.</p>
-      <div class="header-metrics" aria-live="polite">
-        <span>{{ filteredProviders.length }} shown</span>
-        <span>{{ totalProvidersCount }} total</span>
-        <span>{{ activeProvidersCount }} active</span>
-        <span>{{ verifiedProvidersCount }} verified</span>
-      </div>
+  <header class="page-hero">
+    <div class="page-hero__copy">
+      <h1>Providers</h1>
+      <p>Manage service providers, coverage areas, verification status, and lead readiness.</p>
     </div>
-    <div class="header-actions">
-      <button mat-stroked-button type="button" (click)="toggleAdvancedFilters()">
-        <mat-icon>{{ showAdvancedFilters() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
-        {{ showAdvancedFilters() ? 'Hide Filters' : 'Advanced Filters' }}
+
+    <div class="page-hero__actions">
+      <button mat-stroked-button type="button" (click)="exportProviders()" [disabled]="isLoading() || !filteredProviders.length">
+        <mat-icon>download</mat-icon>
+        Export
       </button>
       <a mat-flat-button color="primary" routerLink="/providers/add">
         <mat-icon>person_add</mat-icon>
@@ -22,11 +17,33 @@
     </div>
   </header>
 
-  <form class="filters-shell" [formGroup]="filtersForm">
-    <div class="filters-primary">
-      <mat-form-field appearance="outline">
+  <section class="stats-strip" aria-live="polite">
+    <article class="stat-card">
+      <p class="stat-label">Total</p>
+      <p class="stat-value">{{ totalProvidersCount }}</p>
+    </article>
+
+    <article class="stat-card">
+      <p class="stat-label">Active</p>
+      <p class="stat-value">{{ activeProvidersCount }}</p>
+    </article>
+
+    <article class="stat-card">
+      <p class="stat-label">Verified</p>
+      <p class="stat-value">{{ verifiedProvidersCount }}</p>
+    </article>
+
+    <article class="stat-card">
+      <p class="stat-label">Pending/New</p>
+      <p class="stat-value">{{ pendingProvidersCount }}</p>
+    </article>
+  </section>
+
+  <form class="filters-panel" [formGroup]="filtersForm">
+    <div class="filters-toolbar">
+      <mat-form-field appearance="outline" class="filters-toolbar__search">
         <mat-label>Search</mat-label>
-        <input matInput formControlName="search" placeholder="Name, company, city, region..." />
+        <input matInput formControlName="search" placeholder="Search provider, city, email, phone..." />
       </mat-form-field>
 
       <mat-form-field appearance="outline">
@@ -58,6 +75,40 @@
           }
         </mat-select>
       </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="active">
+          <mat-option value="All">All</mat-option>
+          <mat-option value="Active">Active</mat-option>
+          <mat-option value="Inactive">Inactive</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Verification</mat-label>
+        <mat-select formControlName="verified">
+          <mat-option value="All">All</mat-option>
+          <mat-option value="Verified">Verified</mat-option>
+          <mat-option value="Unverified">Unverified</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="filters-actions">
+      <button mat-stroked-button type="button" (click)="toggleAdvancedFilters()">
+        <mat-icon>tune</mat-icon>
+        {{ showAdvancedFilters() ? 'Hide More Filters' : 'More Filters' }}
+      </button>
+
+      <button mat-stroked-button type="button" (click)="resetFilters()" [disabled]="!hasActiveFilters">
+        <mat-icon>restart_alt</mat-icon>
+        Reset
+      </button>
+
+      @if (hasActiveFilters) {
+        <span class="filters-note">Filters active</span>
+      }
     </div>
 
     @if (showAdvancedFilters()) {
@@ -78,25 +129,7 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Verification</mat-label>
-          <mat-select formControlName="verified">
-            <mat-option value="All">All</mat-option>
-            <mat-option value="Verified">Verified</mat-option>
-            <mat-option value="Unverified">Unverified</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Status</mat-label>
-          <mat-select formControlName="active">
-            <mat-option value="All">All</mat-option>
-            <mat-option value="Active">Active</mat-option>
-            <mat-option value="Inactive">Inactive</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Emergency Service</mat-label>
+          <mat-label>Emergency</mat-label>
           <mat-select formControlName="emergency">
             <mat-option value="All">All</mat-option>
             <mat-option value="Yes">Yes</mat-option>
@@ -124,140 +157,106 @@
         </mat-form-field>
       </div>
     }
-
-    <div class="filters-actions">
-      <button mat-stroked-button type="button" (click)="resetFilters()" [disabled]="!hasActiveFilters">
-        <mat-icon>refresh</mat-icon>
-        Reset Filters
-      </button>
-
-      @if (hasActiveFilters) {
-        <span class="filters-note">Filters active</span>
-      }
-    </div>
   </form>
 
-  <section class="list-shell">
-    @if (!isCompact()) {
-      <div class="table-wrap">
-        <table mat-table [dataSource]="dataSource" matSort>
-          <ng-container matColumnDef="provider">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Provider</th>
-            <td mat-cell *matCellDef="let row" class="provider-cell">
-              <p class="line-primary">{{ row.fullName }}</p>
-              <p class="line-secondary">{{ row.businessName }}</p>
-              <p class="line-tertiary">{{ row.phone }} · {{ row.email }}</p>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="service">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Service</th>
-            <td mat-cell *matCellDef="let row" class="service-cell">
-              <span class="service-pill">{{ row.serviceType }}</span>
-              <span class="line-secondary">{{ getServicePreview(row) }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="coverage">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Coverage</th>
-            <td mat-cell *matCellDef="let row">
-              <p class="line-primary">{{ row.city }}, {{ row.state }}</p>
-              <p class="line-secondary">{{ row.region }} Region</p>
-              <p class="line-tertiary">ZIP: {{ row.zipCodes.join(', ') }}</p>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="availability">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Availability</th>
-            <td mat-cell *matCellDef="let row">
-              <p class="line-primary">{{ row.availability }}</p>
-              <p class="line-secondary">{{ row.workingHours }}</p>
-              <app-status-badge [label]="row.emergencyService ? 'Emergency Yes' : 'Emergency No'" />
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="verification">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-            <td mat-cell *matCellDef="let row" class="status-cell">
-              <app-status-badge [label]="row.verificationStatus" />
-              <app-status-badge [label]="row.isActive ? 'Active' : 'Inactive'" />
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="source">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Source</th>
-            <td mat-cell *matCellDef="let row">{{ row.source }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="dateAdded">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Date Added</th>
-            <td mat-cell *matCellDef="let row">{{ row.createdAt | date: 'mediumDate' }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let row" class="actions-cell">
-              <a mat-icon-button [routerLink]="['/providers', row.id]" aria-label="View provider">
-                <mat-icon>visibility</mat-icon>
-              </a>
-              <a mat-icon-button [routerLink]="['/providers', row.id, 'edit']" aria-label="Edit provider">
-                <mat-icon>edit</mat-icon>
-              </a>
-              <button mat-icon-button (click)="verifyProvider(row.id)" aria-label="Verify provider">
-                <mat-icon>verified</mat-icon>
-              </button>
-              <button mat-icon-button (click)="deactivateProvider(row.id)" aria-label="Deactivate provider">
-                <mat-icon>toggle_off</mat-icon>
-              </button>
-              <button mat-icon-button (click)="deleteProvider(row.id)" aria-label="Delete provider">
-                <mat-icon>delete</mat-icon>
-              </button>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-        </table>
+  <section class="providers-list-shell">
+    @if (isLoading()) {
+      <div class="state-shell state-shell--loading" role="status" aria-live="polite">
+        <mat-icon>hourglass_top</mat-icon>
+        <p>Loading providers...</p>
       </div>
-
-      <mat-paginator [pageSizeOptions]="[5, 10, 20]" [pageSize]="defaultPageSize"></mat-paginator>
+    } @else if (!filteredProviders.length) {
+      <div class="state-shell" role="status" aria-live="polite">
+        <mat-icon>search_off</mat-icon>
+        <p>No providers found for the current filters.</p>
+        <button mat-stroked-button type="button" (click)="resetFilters()">Reset Filters</button>
+      </div>
     } @else {
-      <div class="mobile-cards">
+      <div class="providers-cards">
         @for (provider of filteredProviders; track provider.id) {
-          <article class="provider-card">
-            <div class="provider-card-head">
-              <div>
-                <h3>{{ provider.fullName }}</h3>
-                <p>{{ provider.businessName }}</p>
-              </div>
-              <span class="service-pill">{{ provider.serviceType }}</span>
+          <article
+            class="provider-row-card"
+            [class.lead-new]="getLeadStatus(provider) === 'New'"
+            [class.lead-contacted]="getLeadStatus(provider) === 'Contacted'"
+            [class.lead-qualified]="getLeadStatus(provider) === 'Qualified'"
+            [class.lead-rejected]="getLeadStatus(provider) === 'Rejected'"
+          >
+            <div class="provider-row-card__identity">
+              <p class="provider-name">{{ provider.fullName }}</p>
+              <p class="provider-sub">{{ provider.businessName || 'Contact profile' }}</p>
+              <p class="provider-contact">
+                <span><mat-icon>call</mat-icon>{{ provider.phone }}</span>
+                <span class="dot">&middot;</span>
+                <span><mat-icon>mail</mat-icon>{{ provider.email }}</span>
+              </p>
+              <span class="badge badge--service">{{ provider.serviceType }}</span>
             </div>
 
-            <div class="provider-card-body">
-              <p><strong>Coverage:</strong> {{ provider.city }}, {{ provider.state }} · {{ provider.region }}</p>
-              <p><strong>Services:</strong> {{ getServicePreview(provider) }}</p>
-              <p><strong>Hours:</strong> {{ provider.workingHours }}</p>
-              <div class="card-statuses">
-                <app-status-badge [label]="provider.verificationStatus" />
-                <app-status-badge [label]="provider.isActive ? 'Active' : 'Inactive'" />
+            <div class="provider-row-card__location-services">
+              <p class="location-main">{{ provider.city }}, {{ provider.state }}</p>
+              <p class="location-sub">{{ provider.region }} Region</p>
+              <p class="location-sub">ZIP: {{ getZipPreview(provider) }}</p>
+              <div class="service-tags">
+                @for (service of getVisibleServiceTags(provider); track service) {
+                  <span class="tag">{{ service }}</span>
+                }
+                @if (getRemainingServiceCount(provider) > 0) {
+                  <span class="tag tag--muted">+{{ getRemainingServiceCount(provider) }} more</span>
+                }
               </div>
             </div>
 
-            <div class="provider-card-actions">
-              <a mat-stroked-button [routerLink]="['/providers', provider.id]">
-                <mat-icon>visibility</mat-icon>
-                View
-              </a>
-              <a mat-stroked-button [routerLink]="['/providers', provider.id, 'edit']">
-                <mat-icon>edit</mat-icon>
-                Edit
-              </a>
+            <div class="provider-row-card__availability">
+              <p class="availability-main">{{ provider.availability }}</p>
+              <p class="availability-sub">{{ provider.workingHours }}</p>
+              <span class="badge badge--soft" [class.badge--soft-success]="provider.emergencyService">
+                Emergency: {{ provider.emergencyService ? 'Yes' : 'No' }}
+              </span>
+            </div>
+
+            <div class="provider-row-card__status">
+              <div class="status-line">
+                <span class="badge" [class.badge--info]="getLeadStatus(provider) === 'New'" [class.badge--warning]="getLeadStatus(provider) === 'Contacted'" [class.badge--success]="getLeadStatus(provider) === 'Qualified'" [class.badge--danger]="getLeadStatus(provider) === 'Rejected'">
+                  {{ getLeadStatus(provider) }}
+                </span>
+                <span class="badge" [class.badge--success]="provider.isActive" [class.badge--danger]="!provider.isActive">
+                  {{ getActiveLabel(provider) }}
+                </span>
+              </div>
+              <div class="status-line">
+                <span class="badge" [class.badge--neutral]="!isVerified(provider)" [class.badge--success]="isVerified(provider)">
+                  {{ getVerificationLabel(provider) }}
+                </span>
+              </div>
+              <p class="added-date">Added {{ provider.createdAt | date: 'MMM d, y' }} at {{ provider.createdAt | date: 'h:mm a' }}</p>
+              <span class="badge badge--source-soft" [class.badge--source-manual]="getSourceTone(provider.source) === 'manual'" [class.badge--source-website]="getSourceTone(provider.source) === 'website'" [class.badge--source-referral]="getSourceTone(provider.source) === 'referral'">
+                {{ getSourceLabel(provider.source) }}
+              </span>
+            </div>
+
+            <div class="provider-row-card__actions">
+              <a mat-flat-button color="primary" [routerLink]="['/providers', provider.id]">View</a>
+              <a mat-stroked-button [routerLink]="['/providers', provider.id, 'edit']">Edit</a>
+              <button mat-icon-button [matMenuTriggerFor]="moreActions" aria-label="More actions">
+                <mat-icon>more_horiz</mat-icon>
+              </button>
+
+              <mat-menu #moreActions="matMenu">
+                <button mat-menu-item type="button" (click)="toggleVerification(provider)">
+                  <mat-icon>{{ isVerified(provider) ? 'gpp_bad' : 'verified' }}</mat-icon>
+                  <span>{{ getVerificationActionLabel(provider) }}</span>
+                </button>
+                <button mat-menu-item type="button" (click)="toggleActivation(provider)">
+                  <mat-icon>{{ provider.isActive ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                  <span>{{ getActivationActionLabel(provider) }}</span>
+                </button>
+                <button mat-menu-item type="button" class="menu-danger" (click)="confirmDeleteProvider(provider)">
+                  <mat-icon>delete</mat-icon>
+                  <span>Delete</span>
+                </button>
+              </mat-menu>
             </div>
           </article>
-        }
-
-        @if (!filteredProviders.length) {
-          <p class="empty-state">No providers match your current filters.</p>
         }
       </div>
     }
