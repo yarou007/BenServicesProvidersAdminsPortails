@@ -63,14 +63,30 @@ export class MainLayoutComponent {
   ];
 
   protected readonly isHandset = toSignal(
-    this.breakpointObserver.observe('(max-width: 1024px)').pipe(map((state) => state.matches)),
+    this.breakpointObserver.observe('(max-width: 1023px)').pipe(map((state) => state.matches)),
     { initialValue: false }
   );
 
   protected readonly mobileSidebarOpen = signal(false);
+  protected readonly desktopSidebarCollapsed = signal(false);
 
   protected readonly sidenavMode = computed(() => (this.isHandset() ? 'over' : 'side'));
   protected readonly sidenavOpened = computed(() => (this.isHandset() ? this.mobileSidebarOpen() : true));
+  protected readonly isSidebarCollapsed = computed(() => !this.isHandset() && this.desktopSidebarCollapsed());
+  protected readonly sidebarToggleAriaLabel = computed(() => {
+    if (this.isHandset()) {
+      return this.mobileSidebarOpen() ? 'Close menu' : 'Open menu';
+    }
+
+    return this.isSidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar';
+  });
+  protected readonly sidebarToggleIcon = computed(() => {
+    if (this.isHandset()) {
+      return this.sidenavOpened() ? 'close' : 'menu';
+    }
+
+    return this.isSidebarCollapsed() ? 'menu' : 'menu_open';
+  });
   protected readonly activeSection = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -89,10 +105,15 @@ export class MainLayoutComponent {
   }
 
   protected toggleSidebar(): void {
-    this.mobileSidebarOpen.update((isOpen) => !isOpen);
+    if (this.isHandset()) {
+      this.mobileSidebarOpen.update((isOpen) => !isOpen);
+      return;
+    }
+
+    this.desktopSidebarCollapsed.update((isCollapsed) => !isCollapsed);
   }
 
-  protected closeSidebarIfMobile(): void {
+  protected closeMobileSidebar(): void {
     if (this.isHandset()) {
       this.mobileSidebarOpen.set(false);
     }

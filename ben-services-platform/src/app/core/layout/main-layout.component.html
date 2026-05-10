@@ -1,15 +1,26 @@
-<mat-sidenav-container class="layout-shell">
+<mat-sidenav-container
+  class="layout-shell"
+  [class.is-handset]="isHandset()"
+  [class.sidebar-open]="!isHandset() && !isSidebarCollapsed()"
+  [class.sidebar-collapsed]="isSidebarCollapsed()"
+  [class.is-collapsed]="isSidebarCollapsed()"
+  [hasBackdrop]="isHandset()"
+  [autosize]="!isHandset()"
+  (backdropClick)="closeMobileSidebar()"
+>
   <mat-sidenav
     class="sidebar"
+    [class.sidebar-collapsed]="isSidebarCollapsed()"
     [mode]="sidenavMode()"
     [opened]="sidenavOpened()"
     [fixedInViewport]="isHandset()"
+    [disableClose]="!isHandset()"
     [autoFocus]="false"
   >
     <div class="sidebar-inner">
       <div class="brand-block">
         <div class="brand-logo">BS</div>
-        <div>
+        <div class="brand-copy">
           <p class="brand-title">Ben's Services</p>
           <p class="brand-subtitle">Provider Platform</p>
         </div>
@@ -17,25 +28,45 @@
 
       <mat-nav-list class="nav-list">
         @for (item of navItems; track item.route) {
-          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-nav-link" (click)="closeSidebarIfMobile()">
+          <a
+            mat-list-item
+            class="nav-link"
+            [routerLink]="item.route"
+            routerLinkActive="active-nav-link"
+            [attr.aria-label]="item.label"
+            (click)="closeMobileSidebar()"
+          >
             <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
+            @if (!isSidebarCollapsed()) {
+              <span matListItemTitle>{{ item.label }}</span>
+            }
           </a>
         }
       </mat-nav-list>
 
-      <div class="sidebar-footer">
-        <mat-icon>insights</mat-icon>
-        <p>Track coverage and launch readiness by market in one workspace.</p>
-      </div>
+      @if (!isSidebarCollapsed()) {
+        <div class="sidebar-footer">
+          <mat-icon>insights</mat-icon>
+          <p>Track coverage and launch readiness by market in one workspace.</p>
+        </div>
+      }
     </div>
   </mat-sidenav>
 
-  <mat-sidenav-content class="shell-content">
+  <mat-sidenav-content
+    class="shell-content"
+    [class.main-content-expanded]="!isHandset() && !isSidebarCollapsed()"
+    [class.main-content-collapsed]="isSidebarCollapsed()"
+  >
     <mat-toolbar class="topbar">
       <div class="topbar-leading">
-        <button *ngIf="isHandset()" mat-icon-button (click)="toggleSidebar()" aria-label="Open menu">
-          <mat-icon>menu</mat-icon>
+        <button
+          mat-icon-button
+          class="sidebar-toggle"
+          (click)="toggleSidebar()"
+          [attr.aria-label]="sidebarToggleAriaLabel()"
+        >
+          <mat-icon>{{ sidebarToggleIcon() }}</mat-icon>
         </button>
 
         <div class="topbar-context">

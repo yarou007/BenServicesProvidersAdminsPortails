@@ -9,8 +9,10 @@ namespace BenServicesPlatform.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProvidersController(AppDbContext dbContext) : ControllerBase
+public class ProvidersController(AppDbContext dbContext, ILogger<ProvidersController> logger) : ControllerBase
 {
+    private const string GetProviderByIdRouteName = "GetProviderById";
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ProviderDto>>> GetAllAsync()
     {
@@ -22,7 +24,7 @@ public class ProvidersController(AppDbContext dbContext) : ControllerBase
         return Ok(providers.Select(item => item.ToDto()));
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = GetProviderByIdRouteName)]
     public async Task<ActionResult<ProviderDto>> GetByIdAsync(int id)
     {
         var provider = await dbContext.Providers
@@ -40,25 +42,85 @@ public class ProvidersController(AppDbContext dbContext) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProviderDto>> CreateAsync([FromBody] ProviderUpsertRequest request)
     {
-        var now = DateTime.UtcNow;
+        ProviderEntity? createdEntity = null;
 
-        var entity = new ProviderEntity
+        try
         {
-            CreatedAt = now,
-            UpdatedAt = now
-        };
+            var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+            var normalizedPhone = request.Phone.Trim();
+            var normalizedFullName = request.FullName.Trim().ToLowerInvariant();
 
-        entity.ApplyUpdate(request);
+            // Guard against duplicate inserts caused by client retries on transient failures.
+            var existingProvider = await dbContext.Providers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item =>
+                    item.Email.ToLower() == normalizedEmail &&
+                    item.Phone == normalizedPhone &&
+                    item.FullName.ToLower() == normalizedFullName);
 
-        if ((entity.VerificationStatus is "Verified" or "Active") && entity.VerifiedAt is null)
-        {
-            entity.VerifiedAt = now;
+            if (existingProvider is not null)
+            {
+                logger.LogInformation(
+                    "Duplicate provider creation prevented for Email={Email}, Phone={Phone}. ExistingId={ProviderId}",
+                    normalizedEmail,
+                    normalizedPhone,
+                    existingProvider.Id);
+
+                return Conflict(new
+                {
+                    message = "A provider with the same identity already exists.",
+                    provider = existingProvider.ToDto()
+                });
+            }
+
+            var now = DateTime.UtcNow;
+
+            createdEntity = new ProviderEntity
+            {
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            createdEntity.ApplyUpdate(request);
+
+            if ((createdEntity.VerificationStatus is "Verified" or "Active") && createdEntity.VerifiedAt is null)
+            {
+                createdEntity.VerifiedAt = now;
+            }
+
+            dbContext.Providers.Add(createdEntity);
+            await dbContext.SaveChangesAsync();
+
+            var createdDto = createdEntity.ToDto();
+
+            return CreatedAtRoute(GetProviderByIdRouteName, new { id = createdEntity.Id }, createdDto);
         }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "Provider creation failed for Email={Email}, Phone={Phone}.",
+                request.Email,
+                request.Phone);
 
-        dbContext.Providers.Add(entity);
-        await dbContext.SaveChangesAsync();
+            // If the record was committed before response generation failed, return a success payload.
+            if (createdEntity?.Id > 0)
+            {
+                var persistedEntity = await dbContext.Providers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(item => item.Id == createdEntity.Id);
 
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = entity.Id }, entity.ToDto());
+                if (persistedEntity is not null)
+                {
+                    return Ok(persistedEntity.ToDto());
+                }
+            }
+
+            return Problem(
+                title: "Provider creation failed",
+                detail: "An unexpected error occurred while creating the provider.",
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
     }
 
     [HttpPut("{id:int}")]

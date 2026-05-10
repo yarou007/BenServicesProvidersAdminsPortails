@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BenServicesPlatform.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2ab35cb1dbd8fafa910a2b8f5e1a4ada64d77ae0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+473f28c530cd090b8e560b753c5ffe5d12622afe")]
 [assembly: System.Reflection.AssemblyProductAttribute("BenServicesPlatform.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BenServicesPlatform.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
