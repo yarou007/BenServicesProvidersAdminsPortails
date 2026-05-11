@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
 import { API_BASE_URL } from '../../core/config/api.config';
@@ -194,6 +194,24 @@ export class ProviderService {
         return throwError(() => error);
       })
     );
+  }
+
+  downloadProviderDocument(providerId: number, type: 'w9' | 'coi'): Observable<Blob> {
+    return this.downloadProviderDocumentResponse(providerId, type).pipe(map((response) => response.body ?? new Blob()));
+  }
+
+  downloadProviderDocumentResponse(providerId: number, type: 'w9' | 'coi'): Observable<HttpResponse<Blob>> {
+    return this.httpClient
+      .get(`${API_BASE_URL}/providers/${providerId}/documents/${type}`, {
+        observe: 'response',
+        responseType: 'blob'
+      })
+      .pipe(
+        catchError((error) => {
+          console.error('Failed to download provider document', error);
+          return throwError(() => error);
+        })
+      );
   }
 
   filterProviders(filters: ProviderFilters): Observable<Provider[]> {
