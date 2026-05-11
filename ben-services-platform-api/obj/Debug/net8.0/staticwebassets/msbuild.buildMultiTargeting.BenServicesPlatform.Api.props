@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="../build/BenServicesPlatform.Api.props" />
-</Project>
