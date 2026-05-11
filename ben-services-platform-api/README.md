@@ -62,6 +62,25 @@ Current expected migrations in production are:
 - `20260510040658_AddProviderComplianceDocuments`
 - `20260510150257_AddAdminAuthentication`
 
+## Production environment variables
+Set these in Render (or your host) before deploying:
+
+- `ConnectionStrings__BenServicesDatabase`
+- `JWT_SECRET` (at least 32 chars)
+- `JWT_ISSUER`
+- `JWT_AUDIENCE`
+- `JWT_EXPIRATION_MINUTES` (for example `120`)
+- `CORS_ALLOWED_ORIGINS` (comma-separated frontend URLs)
+
+### First admin bootstrap
+If the `admins` table is empty, startup now expects bootstrap values in non-development environments:
+
+- `DEFAULT_ADMIN_EMAIL`
+- `DEFAULT_ADMIN_PASSWORD` (must satisfy password policy)
+- `DEFAULT_ADMIN_FULLNAME`
+
+On first start, the API creates this admin and marks `MustChangePassword = true`.
+
 ## API routes
 - `GET /api/providers`
 - `GET /api/providers/{id}`
@@ -77,6 +96,12 @@ Current expected migrations in production are:
 - `POST /api/applications/{id}/approve`
 - `POST /api/applications/{id}/reject`
 - `POST /api/applications/{id}/request-more-info`
+
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/change-password`
+- `GET /api/admins`
+- `POST /api/admins`
 
 ## Angular integration
 Frontend now calls this API via:
