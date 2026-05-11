@@ -39,6 +39,29 @@ Apply migrations:
 dotnet ef database update
 ```
 
+### Aiven sync (recommended)
+Use this flow to bring an existing Aiven MySQL database up to the exact schema in this repo.
+
+1. Generate an idempotent script from all EF migrations:
+```bash
+dotnet ef migrations script --idempotent --output migrations/aiven-sync.sql
+```
+
+2. Apply it to Aiven (safe to re-run):
+```bash
+mysql --ssl-mode=REQUIRED --user <AIVEN_USER> --password=<AIVEN_PASSWORD> --host <AIVEN_HOST> --port <AIVEN_PORT> <AIVEN_DB_NAME> < migrations/aiven-sync.sql
+```
+
+3. Confirm applied migrations:
+```sql
+SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;
+```
+
+Current expected migrations in production are:
+- `20260508233646_InitialCreate`
+- `20260510040658_AddProviderComplianceDocuments`
+- `20260510150257_AddAdminAuthentication`
+
 ## API routes
 - `GET /api/providers`
 - `GET /api/providers/{id}`
