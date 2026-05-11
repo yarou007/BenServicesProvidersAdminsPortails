@@ -3,5 +3,7 @@ node_modules/
 dist/
 .angular/
 .env
-**/bin/
-**/obj/
+uploads/
+ben-services-platform-api/bin/
+ben-services-platform-api/obj/
+ben-services-platform-api/uploads/

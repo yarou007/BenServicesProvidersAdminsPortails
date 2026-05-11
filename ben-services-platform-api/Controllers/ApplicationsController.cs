@@ -2,6 +2,7 @@ using BenServicesPlatform.Api.Data;
 using BenServicesPlatform.Api.Dtos;
 using BenServicesPlatform.Api.Entities;
 using BenServicesPlatform.Api.Mapping;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace BenServicesPlatform.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ApplicationsController(AppDbContext dbContext) : ControllerBase
 {
     [HttpGet]
@@ -38,6 +40,7 @@ public class ApplicationsController(AppDbContext dbContext) : ControllerBase
     }
 
     [HttpPost]
+    [AllowAnonymous]
     public async Task<ActionResult<ProviderApplicationDto>> CreateAsync([FromBody] ProviderApplicationCreateRequest request)
     {
         var entity = request.ToEntity();

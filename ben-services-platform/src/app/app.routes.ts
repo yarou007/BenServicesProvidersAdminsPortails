@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard } from './core/guards/admin.guard';
+import { adminChildGuard, adminGuard } from './core/guards/admin.guard';
 import { MainLayoutComponent } from './core/layout/main-layout.component';
 
 export const routes: Routes = [
@@ -12,9 +12,18 @@ export const routes: Routes = [
     loadChildren: () => import('./features/public/public.routes').then((m) => m.PUBLIC_ROUTES)
   },
   {
+    path: 'change-password',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/auth/change-password/change-password-page.component').then(
+        (m) => m.ChangePasswordPageComponent
+      )
+  },
+  {
     path: '',
     component: MainLayoutComponent,
     canActivate: [adminGuard],
+    canActivateChild: [adminChildGuard],
     children: [
       {
         path: '',

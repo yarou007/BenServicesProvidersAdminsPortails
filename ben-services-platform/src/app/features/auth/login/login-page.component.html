@@ -10,25 +10,25 @@
 
     <form [formGroup]="loginForm" (ngSubmit)="signIn()" novalidate>
       <mat-form-field appearance="outline">
-        <mat-label>Email</mat-label>
-        <input matInput formControlName="email" type="email" autocomplete="email" />
-        <mat-error *ngIf="loginForm.controls.email.hasError('required')">Email is required.</mat-error>
-        <mat-error *ngIf="loginForm.controls.email.hasError('email')">Enter a valid email address.</mat-error>
+        <mat-label>Email or username</mat-label>
+        <input matInput formControlName="login" type="text" autocomplete="username" />
+        <mat-error *ngIf="loginForm.controls.login.hasError('required')">Login is required.</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Password</mat-label>
         <input matInput formControlName="password" type="password" autocomplete="current-password" />
         <mat-error *ngIf="loginForm.controls.password.hasError('required')">Password is required.</mat-error>
-        <mat-error *ngIf="loginForm.controls.password.hasError('minlength')">Minimum 6 characters.</mat-error>
+        <mat-error *ngIf="loginForm.controls.password.hasError('minlength')">Minimum 8 characters.</mat-error>
       </mat-form-field>
 
-      <div class="form-row">
-        <mat-checkbox formControlName="rememberMe">Remember me</mat-checkbox>
-        <a routerLink="/login" class="link">Forgot password?</a>
-      </div>
+      @if (errorMessage()) {
+        <p class="error-message">{{ errorMessage() }}</p>
+      }
 
-      <button mat-flat-button color="primary" class="sign-in-button" type="submit">Sign in</button>
+      <button mat-flat-button color="primary" class="sign-in-button" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Signing in...' : 'Sign in' }}
+      </button>
     </form>
   </mat-card>
 </section>

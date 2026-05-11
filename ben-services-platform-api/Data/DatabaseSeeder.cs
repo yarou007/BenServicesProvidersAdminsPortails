@@ -1,13 +1,53 @@
 using BenServicesPlatform.Api.Entities;
 using BenServicesPlatform.Api.Mapping;
+using BenServicesPlatform.Api.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace BenServicesPlatform.Api.Data;
 
 public static class DatabaseSeeder
 {
-    public static async Task SeedAsync(AppDbContext dbContext)
+    public static async Task SeedAsync(
+        AppDbContext dbContext,
+        IConfiguration configuration,
+        IHostEnvironment hostEnvironment,
+        IPasswordHasher<AdminEntity> passwordHasher)
     {
+        if (hostEnvironment.IsDevelopment() && !await dbContext.Admins.AnyAsync())
+        {
+            var seedEmail = configuration["DEFAULT_ADMIN_EMAIL"]?.Trim();
+            var seedPassword = configuration["DEFAULT_ADMIN_PASSWORD"];
+            var seedFullName = configuration["DEFAULT_ADMIN_FULLNAME"]?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(seedEmail)
+                && !string.IsNullOrWhiteSpace(seedPassword)
+                && !string.IsNullOrWhiteSpace(seedFullName)
+                && PasswordPolicyValidator.IsStrong(seedPassword, out _))
+            {
+                var normalizedEmail = seedEmail.ToLowerInvariant();
+                var usernameBase = CredentialGenerator.SanitizeUsernameBase(normalizedEmail);
+                var username = await BuildUniqueUsernameAsync(dbContext, usernameBase);
+                var now = DateTime.UtcNow;
+
+                var admin = new AdminEntity
+                {
+                    FullName = seedFullName,
+                    Email = normalizedEmail,
+                    Username = username,
+                    Role = AdminRole.Admin,
+                    IsActive = true,
+                    MustChangePassword = true,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+
+                admin.PasswordHash = passwordHasher.HashPassword(admin, seedPassword);
+                dbContext.Admins.Add(admin);
+                await dbContext.SaveChangesAsync();
+            }
+        }
+
         if (!await dbContext.Providers.AnyAsync())
         {
             var now = DateTime.UtcNow;
@@ -160,5 +200,19 @@ public static class DatabaseSeeder
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task<string> BuildUniqueUsernameAsync(AppDbContext dbContext, string usernameBase)
+    {
+        var username = usernameBase;
+        var suffix = 2;
+
+        while (await dbContext.Admins.AnyAsync(item => item.Username == username))
+        {
+            username = $"{usernameBase}{suffix}";
+            suffix++;
+        }
+
+        return username;
     }
 }

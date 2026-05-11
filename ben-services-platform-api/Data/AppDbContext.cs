@@ -7,10 +7,35 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<ProviderEntity> Providers => Set<ProviderEntity>();
     public DbSet<ProviderApplicationEntity> ProviderApplications => Set<ProviderApplicationEntity>();
+    public DbSet<AdminEntity> Admins => Set<AdminEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AdminEntity>(entity =>
+        {
+            entity.ToTable("admins");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Id).ValueGeneratedOnAdd();
+            entity.Property(item => item.FullName).HasMaxLength(120).IsRequired();
+            entity.Property(item => item.Email).HasMaxLength(200).IsRequired();
+            entity.Property(item => item.Username).HasMaxLength(120).IsRequired();
+            entity.Property(item => item.PasswordHash).HasMaxLength(500).IsRequired();
+            entity.Property(item => item.Role).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.CreatedAt).HasColumnType("datetime(6)");
+            entity.Property(item => item.UpdatedAt).HasColumnType("datetime(6)");
+
+            entity.HasIndex(item => item.Email).IsUnique();
+            entity.HasIndex(item => item.Username).IsUnique();
+            entity.HasIndex(item => item.Role);
+            entity.HasIndex(item => item.IsActive);
+
+            entity.HasOne(item => item.CreatedByAdmin)
+                .WithMany(item => item.CreatedAdmins)
+                .HasForeignKey(item => item.CreatedByAdminId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
 
         modelBuilder.Entity<ProviderEntity>(entity =>
         {
@@ -75,5 +100,51 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(item => item.State);
             entity.HasIndex(item => item.SubmittedAt);
         });
+    }
+
+    public override int SaveChanges()
+    {
+        ApplyAuditTimestamps();
+        return base.SaveChanges();
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ApplyAuditTimestamps();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditTimestamps();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        ApplyAuditTimestamps();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void ApplyAuditTimestamps()
+    {
+        var now = DateTime.UtcNow;
+
+        foreach (var entry in ChangeTracker.Entries<AdminEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                if (entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = now;
+                }
+
+                entry.Entity.UpdatedAt = now;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = now;
+            }
+        }
     }
 }

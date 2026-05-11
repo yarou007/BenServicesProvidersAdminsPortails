@@ -1,6 +1,6 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule, DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Inject, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject, OnInit, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -73,7 +73,7 @@ export class ApplicationDetailDialogComponent {
   styleUrl: './applications-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ApplicationsPageComponent {
+export class ApplicationsPageComponent implements OnInit {
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly applicationService = inject(ApplicationService);
   private readonly snackBar = inject(MatSnackBar);
@@ -95,6 +95,10 @@ export class ApplicationsPageComponent {
     'status',
     'actions'
   ];
+
+  ngOnInit(): void {
+    this.applicationService.refreshApplications().subscribe();
+  }
 
   protected viewApplication(application: ProviderApplication): void {
     this.dialog.open(ApplicationDetailDialogComponent, {

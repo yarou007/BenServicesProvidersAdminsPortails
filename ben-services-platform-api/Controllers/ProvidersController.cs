@@ -1,8 +1,11 @@
 using System.Net.Mime;
+using System.Text.RegularExpressions;
 using BenServicesPlatform.Api.Data;
 using BenServicesPlatform.Api.Dtos;
 using BenServicesPlatform.Api.Entities;
+using BenServicesPlatform.Api.Extensions;
 using BenServicesPlatform.Api.Mapping;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +13,7 @@ namespace BenServicesPlatform.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ProvidersController(
     AppDbContext dbContext,
     ILogger<ProvidersController> logger,
@@ -68,43 +72,87 @@ public class ProvidersController(
     [HttpGet("{id:int}/documents/{documentType}", Name = GetProviderDocumentRouteName)]
     public async Task<IActionResult> DownloadDocumentAsync(int id, string documentType)
     {
+        var normalizedDocumentType = NormalizeDocumentType(documentType);
+        if (normalizedDocumentType is null)
+        {
+            logger.LogInformation(
+                "Provider document download rejected due to invalid document type. ProviderId={ProviderId}, RequestedType={RequestedType}",
+                id,
+                documentType);
+
+            return BadRequest(new { message = "Invalid document type. Allowed values are 'w9' and 'coi'." });
+        }
+
+        if (!(User.Identity?.IsAuthenticated ?? false))
+        {
+            return Unauthorized();
+        }
+
+        var connectedAdmin = await GetConnectedAdminAsync();
+        if (connectedAdmin is null)
+        {
+            logger.LogWarning(
+                "Provider document download forbidden for authenticated user. ProviderId={ProviderId}, DocumentType={DocumentType}",
+                id,
+                normalizedDocumentType);
+
+            return Forbid();
+        }
+
         var provider = await dbContext.Providers
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == id);
 
         if (provider is null)
         {
-            return NotFound();
-        }
+            logger.LogInformation(
+                "Provider document download failed because provider does not exist. ProviderId={ProviderId}, DocumentType={DocumentType}",
+                id,
+                normalizedDocumentType);
 
-        var normalizedDocumentType = NormalizeDocumentType(documentType);
-        if (normalizedDocumentType is null)
-        {
             return NotFound();
         }
 
         var relativePath = GetDocumentRelativePath(provider, normalizedDocumentType);
         if (string.IsNullOrWhiteSpace(relativePath))
         {
-            return NotFound();
+            logger.LogInformation(
+                "Provider document metadata missing. ProviderId={ProviderId}, DocumentType={DocumentType}",
+                id,
+                normalizedDocumentType);
+
+            return NotFound(new { message = "Document metadata is missing for this provider." });
         }
 
-        var absolutePath = ToAbsoluteDocumentPath(relativePath);
-        if (!System.IO.File.Exists(absolutePath))
+        if (!TryResolveProviderDocumentPath(id, relativePath, out var absolutePath, out var normalizedRelativePath, out var pathFailureReason))
         {
-            return NotFound();
+            logger.LogWarning(
+                "Provider document path is invalid. ProviderId={ProviderId}, DocumentType={DocumentType}, RelativePath={RelativePath}, Reason={Reason}",
+                id,
+                normalizedDocumentType,
+                relativePath,
+                pathFailureReason);
+
+            return NotFound(new { message = "Document metadata path is invalid or missing." });
         }
 
-        var extension = Path.GetExtension(absolutePath).ToLowerInvariant();
-        var contentType = extension switch
-        {
-            ".pdf" => MediaTypeNames.Application.Pdf,
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            _ => MediaTypeNames.Application.Octet
-        };
+        var fileExists = System.IO.File.Exists(absolutePath);
+        logger.LogInformation(
+            "Provider document resolved. ProviderId={ProviderId}, DocumentType={DocumentType}, RelativePath={RelativePath}, AbsolutePath={AbsolutePath}, FileExists={FileExists}",
+            id,
+            normalizedDocumentType,
+            normalizedRelativePath,
+            absolutePath,
+            fileExists);
 
-        var downloadName = $"{normalizedDocumentType}{extension}";
+        if (!fileExists)
+        {
+            return NotFound(new { message = "Document file was not found on disk." });
+        }
+
+        var extension = Path.GetExtension(absolutePath);
+        var contentType = GetContentTypeFromExtension(extension);
+        var downloadName = BuildDownloadFileName(provider, normalizedDocumentType, extension);
         var stream = new FileStream(absolutePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         return File(stream, contentType, downloadName);
     }
@@ -259,7 +307,7 @@ public class ProvidersController(
 
         if (request.W9File is not null)
         {
-            DeleteDocumentIfExists(entity.W9FilePath);
+            DeleteDocumentIfExists(entity.Id, entity.W9FilePath);
             var savedW9 = await SaveProviderDocumentAsync(entity.Id, request.W9File, W9DocumentType);
             entity.W9FilePath = savedW9.relativePath;
             entity.W9UploadedAt = savedW9.uploadedAt;
@@ -267,7 +315,7 @@ public class ProvidersController(
 
         if (request.CoiFile is not null)
         {
-            DeleteDocumentIfExists(entity.CoiFilePath);
+            DeleteDocumentIfExists(entity.Id, entity.CoiFilePath);
             var savedCoi = await SaveProviderDocumentAsync(entity.Id, request.CoiFile, CoiDocumentType);
             entity.CoiFilePath = savedCoi.relativePath;
             entity.CoiUploadedAt = savedCoi.uploadedAt;
@@ -328,8 +376,8 @@ public class ProvidersController(
             return NotFound();
         }
 
-        DeleteDocumentIfExists(entity.W9FilePath);
-        DeleteDocumentIfExists(entity.CoiFilePath);
+        DeleteDocumentIfExists(entity.Id, entity.W9FilePath);
+        DeleteDocumentIfExists(entity.Id, entity.CoiFilePath);
 
         dbContext.Providers.Remove(entity);
         await dbContext.SaveChangesAsync();
@@ -340,12 +388,17 @@ public class ProvidersController(
     private ProviderDto ToProviderDto(ProviderEntity entity)
     {
         var dto = entity.ToDto();
-        dto.W9FileUrl = dto.HasW9File
-            ? Url.RouteUrl(GetProviderDocumentRouteName, new { id = entity.Id, documentType = W9DocumentType }, Request.Scheme)
-            : null;
-        dto.CoiFileUrl = dto.HasCoiFile
-            ? Url.RouteUrl(GetProviderDocumentRouteName, new { id = entity.Id, documentType = CoiDocumentType }, Request.Scheme)
-            : null;
+
+        var w9Document = ResolveProviderDocumentMetadata(entity, W9DocumentType);
+        dto.HasW9File = w9Document.hasFile;
+        dto.W9FileUrl = w9Document.downloadUrl;
+        dto.W9UploadedAt = w9Document.uploadedAt;
+
+        var coiDocument = ResolveProviderDocumentMetadata(entity, CoiDocumentType);
+        dto.HasCoiFile = coiDocument.hasFile;
+        dto.CoiFileUrl = coiDocument.downloadUrl;
+        dto.CoiUploadedAt = coiDocument.uploadedAt;
+
         return dto;
     }
 
@@ -442,21 +495,31 @@ public class ProvidersController(
         return (relativePath, DateTime.UtcNow);
     }
 
-    private void DeleteDocumentIfExists(string? relativePath)
+    private void DeleteDocumentIfExists(int providerId, string? relativePath)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
         {
             return;
         }
 
-        var absolutePath = ToAbsoluteDocumentPath(relativePath);
+        if (!TryResolveProviderDocumentPath(providerId, relativePath, out var absolutePath, out _, out var failureReason))
+        {
+            logger.LogWarning(
+                "Skipping provider document delete due to invalid stored path. ProviderId={ProviderId}, RelativePath={RelativePath}, Reason={Reason}",
+                providerId,
+                relativePath,
+                failureReason);
+
+            return;
+        }
+
         if (System.IO.File.Exists(absolutePath))
         {
             System.IO.File.Delete(absolutePath);
         }
     }
 
-    private string? NormalizeDocumentType(string documentType)
+    private static string? NormalizeDocumentType(string documentType)
     {
         return documentType.Trim().ToLowerInvariant() switch
         {
@@ -476,9 +539,147 @@ public class ProvidersController(
         };
     }
 
-    private string ToAbsoluteDocumentPath(string relativePath)
+    private (bool hasFile, string? downloadUrl, DateTime? uploadedAt) ResolveProviderDocumentMetadata(
+        ProviderEntity provider,
+        string documentType)
     {
-        var safeRelativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-        return Path.Combine(environment.ContentRootPath, safeRelativePath);
+        var relativePath = GetDocumentRelativePath(provider, documentType);
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return (false, null, null);
+        }
+
+        if (!TryResolveProviderDocumentPath(provider.Id, relativePath, out var absolutePath, out _, out _))
+        {
+            return (false, null, null);
+        }
+
+        if (!System.IO.File.Exists(absolutePath))
+        {
+            return (false, null, null);
+        }
+
+        var downloadUrl = Url.RouteUrl(
+            GetProviderDocumentRouteName,
+            new { id = provider.Id, documentType },
+            Request.Scheme);
+
+        var uploadedAt = documentType == W9DocumentType ? provider.W9UploadedAt : provider.CoiUploadedAt;
+        return (true, downloadUrl, uploadedAt);
+    }
+
+    private bool TryResolveProviderDocumentPath(
+        int providerId,
+        string relativePath,
+        out string absolutePath,
+        out string normalizedRelativePath,
+        out string failureReason)
+    {
+        absolutePath = string.Empty;
+        normalizedRelativePath = relativePath.Trim().Replace('\\', '/');
+        failureReason = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(normalizedRelativePath))
+        {
+            failureReason = "Path is empty.";
+            return false;
+        }
+
+        if (Path.IsPathRooted(normalizedRelativePath))
+        {
+            failureReason = "Path must be relative.";
+            return false;
+        }
+
+        var expectedPrefix = $"uploads/providers/{providerId}/";
+        if (!normalizedRelativePath.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            failureReason = $"Path must start with '{expectedPrefix}'.";
+            return false;
+        }
+
+        var combinedPath = Path.Combine(
+            environment.ContentRootPath,
+            normalizedRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        var fullPath = Path.GetFullPath(combinedPath);
+        var providerRoot = Path.GetFullPath(
+            Path.Combine(environment.ContentRootPath, "uploads", "providers", providerId.ToString()));
+
+        var expectedRootPrefix = providerRoot + Path.DirectorySeparatorChar;
+        var isInsideRoot =
+            fullPath.StartsWith(expectedRootPrefix, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fullPath, providerRoot, StringComparison.OrdinalIgnoreCase);
+
+        if (!isInsideRoot)
+        {
+            failureReason = "Path escapes provider upload root.";
+            return false;
+        }
+
+        absolutePath = fullPath;
+        return true;
+    }
+
+    private static string GetContentTypeFromExtension(string extension)
+    {
+        return extension.ToLowerInvariant() switch
+        {
+            ".pdf" => MediaTypeNames.Application.Pdf,
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            _ => MediaTypeNames.Application.Octet
+        };
+    }
+
+    private static string BuildDownloadFileName(ProviderEntity provider, string documentType, string extension)
+    {
+        var prefix = documentType == W9DocumentType ? "W9" : "COI";
+        var displayName = !string.IsNullOrWhiteSpace(provider.BusinessName)
+            ? provider.BusinessName
+            : provider.FullName;
+        var safeProviderName = SanitizeProviderNameForFileName(displayName, provider.Id);
+        var safeExtension = string.IsNullOrWhiteSpace(extension) ? ".pdf" : extension.ToLowerInvariant();
+
+        return $"{prefix}-{safeProviderName}{safeExtension}";
+    }
+
+    private static string SanitizeProviderNameForFileName(string? value, int providerId)
+    {
+        var fallbackName = $"provider-{providerId}";
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallbackName;
+        }
+
+        var sanitized = value.Trim();
+
+        foreach (var invalidCharacter in Path.GetInvalidFileNameChars())
+        {
+            sanitized = sanitized.Replace(invalidCharacter, ' ');
+        }
+
+        sanitized = Regex.Replace(sanitized, @"[^A-Za-z0-9\s-]", " ");
+        sanitized = Regex.Replace(sanitized, @"\s+", "-");
+        sanitized = Regex.Replace(sanitized, @"-+", "-").Trim('-');
+
+        return string.IsNullOrWhiteSpace(sanitized) ? fallbackName : sanitized;
+    }
+
+    private async Task<AdminEntity?> GetConnectedAdminAsync()
+    {
+        var adminId = HttpContext.GetAuthenticatedAdminId();
+        if (adminId is null)
+        {
+            return null;
+        }
+
+        return await dbContext.Admins
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item =>
+                item.Id == adminId
+                && item.IsActive
+                && (item.Role == AdminRole.SuperAdmin
+                    || item.Role == AdminRole.Admin
+                    || item.Role == AdminRole.Staff));
     }
 }

@@ -101,14 +101,14 @@
             {{ provider.hasW9File ? 'Uploaded' : 'Missing' }}
           </span>
         </p>
-        @if (provider.w9UploadedAt) {
+        @if (provider.hasW9File && provider.w9UploadedAt) {
           <p><strong>W-9 Uploaded At:</strong> {{ provider.w9UploadedAt | date: 'medium' }}</p>
         }
-        @if (provider.w9FileUrl) {
-          <a mat-stroked-button color="primary" [href]="provider.w9FileUrl" target="_blank" rel="noopener">
-            <mat-icon>download</mat-icon>
-            Download W-9
-          </a>
+        @if (provider.hasW9File) {
+          <button mat-stroked-button color="primary" type="button" [disabled]="downloadingW9" (click)="downloadDocument(provider, 'w9')">
+            <mat-icon>{{ downloadingW9 ? 'hourglass_top' : 'download' }}</mat-icon>
+            {{ downloadingW9 ? 'Downloading...' : 'Download W-9' }}
+          </button>
         }
 
         <p>
@@ -117,14 +117,20 @@
             {{ provider.hasCoiFile ? 'Uploaded' : 'Missing' }}
           </span>
         </p>
-        @if (provider.coiUploadedAt) {
+        @if (provider.hasCoiFile && provider.coiUploadedAt) {
           <p><strong>COI Uploaded At:</strong> {{ provider.coiUploadedAt | date: 'medium' }}</p>
         }
-        @if (provider.coiFileUrl) {
-          <a mat-stroked-button color="primary" [href]="provider.coiFileUrl" target="_blank" rel="noopener">
-            <mat-icon>download</mat-icon>
-            Download COI
-          </a>
+        @if (provider.hasCoiFile) {
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            [disabled]="downloadingCoi"
+            (click)="downloadDocument(provider, 'coi')"
+          >
+            <mat-icon>{{ downloadingCoi ? 'hourglass_top' : 'download' }}</mat-icon>
+            {{ downloadingCoi ? 'Downloading...' : 'Download COI' }}
+          </button>
         }
       </mat-card-content>
     </mat-card>

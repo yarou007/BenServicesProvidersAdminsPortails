@@ -59,6 +59,7 @@ export class MainLayoutComponent {
     { label: 'Applications', route: '/applications', icon: 'assignment' },
     { label: 'Regions / Market Analysis', route: '/regions', icon: 'location_city' },
     { label: 'Reports & Export', route: '/reports', icon: 'bar_chart' },
+    { label: 'Admin Management', route: '/settings/admins', icon: 'manage_accounts' },
     { label: 'Settings', route: '/settings', icon: 'settings' }
   ];
 
@@ -94,6 +95,10 @@ export class MainLayoutComponent {
       startWith(this.resolveSectionLabel(this.router.url))
     ),
     { initialValue: 'Dashboard' }
+  );
+  protected readonly currentAdmin = computed(() => this.authService.getCurrentUser());
+  protected readonly profileDisplayName = computed(
+    () => this.currentAdmin()?.fullName || this.currentAdmin()?.email || 'Admin'
   );
 
   protected onSearch(): void {

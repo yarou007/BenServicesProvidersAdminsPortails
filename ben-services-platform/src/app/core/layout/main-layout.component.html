@@ -94,7 +94,7 @@
 
         <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-button">
           <mat-icon>account_circle</mat-icon>
-          <span>Admin User</span>
+          <span>{{ profileDisplayName() }}</span>
         </button>
         <mat-menu #profileMenu="matMenu">
           <button mat-menu-item routerLink="/settings">

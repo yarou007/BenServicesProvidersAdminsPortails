@@ -62,19 +62,14 @@ mat-form-field {
   gap: 0.7rem;
 }
 
-.link {
-  color: #2563eb;
-  font-size: 0.85rem;
-  text-decoration: none;
-}
-
-.link:hover,
-.link:focus-visible {
-  text-decoration: underline;
-}
-
 .sign-in-button {
   width: 100%;
   min-height: 46px;
   border-radius: 10px;
+}
+
+.error-message {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
 }

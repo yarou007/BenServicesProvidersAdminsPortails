@@ -1,0 +1,77 @@
+.admins-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.create-admin-card,
+mat-card {
+  border-radius: 14px;
+}
+
+.create-form {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+.create-form button {
+  min-height: 42px;
+  border-radius: 10px;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+th,
+td {
+  padding: 0.65rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.8rem;
+}
+
+.status-pill.inactive {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.state-text {
+  margin: 0;
+  color: #64748b;
+}
+
+@media (max-width: 980px) {
+  .create-form {
+    grid-template-columns: 1fr;
+  }
+
+  table {
+    min-width: 760px;
+  }
+}
