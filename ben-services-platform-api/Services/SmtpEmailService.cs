@@ -4,8 +4,12 @@ using BenServicesPlatform.Api.Settings;
 
 namespace BenServicesPlatform.Api.Services;
 
-public class SmtpEmailService(SmtpSettings smtpSettings) : IEmailService
+public class SmtpEmailService(
+    SmtpSettings smtpSettings,
+    ILogger<SmtpEmailService> logger) : IEmailService
 {
+    private const int SmtpTimeoutMilliseconds = 15000;
+
     public async Task SendAdminCredentialsAsync(
         string recipientName,
         string recipientEmail,
@@ -44,10 +48,32 @@ Thank you.
         {
             EnableSsl = true,
             UseDefaultCredentials = false,
-            Credentials = new NetworkCredential(smtpSettings.User, smtpSettings.Password)
+            Credentials = new NetworkCredential(smtpSettings.User, smtpSettings.Password),
+            Timeout = SmtpTimeoutMilliseconds
         };
 
-        cancellationToken.ThrowIfCancellationRequested();
-        await smtpClient.SendMailAsync(mailMessage, cancellationToken);
+        logger.LogInformation(
+            "Starting SMTP send for admin credentials email to RecipientEmail={RecipientEmail}",
+            recipientEmail);
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(SmtpTimeoutMilliseconds);
+
+        try
+        {
+            timeoutCts.Token.ThrowIfCancellationRequested();
+            await smtpClient.SendMailAsync(mailMessage, timeoutCts.Token);
+            logger.LogInformation(
+                "Completed SMTP send for admin credentials email to RecipientEmail={RecipientEmail}",
+                recipientEmail);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "SMTP send failed for admin credentials email to RecipientEmail={RecipientEmail}",
+                recipientEmail);
+            throw;
+        }
     }
 }

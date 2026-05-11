@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { finalize } from 'rxjs';
 import { AdminRole, AdminUser } from '../../../core/models/admin.model';
 import { AdminService } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -87,22 +88,29 @@ export class AdminManagementPageComponent implements OnInit {
         email,
         role
       })
-      .subscribe({
-        next: (createdAdmin) => {
+      .pipe(
+        finalize(() => {
           this.creating.set(false);
-          this.admins.set([createdAdmin, ...this.admins()]);
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          this.loadAdmins();
           this.createForm.reset({
             fullName: '',
             email: '',
             role: 'ADMIN'
           });
 
-          this.snackBar.open('Admin created successfully. Login credentials were sent by email.', 'Close', {
+          const notificationMessage = response.emailSent
+            ? 'Admin created and credentials email sent.'
+            : 'Admin created, but credentials email could not be sent.';
+
+          this.snackBar.open(notificationMessage, 'Close', {
             duration: 3500
           });
         },
         error: (error: unknown) => {
-          this.creating.set(false);
           this.snackBar.open(this.resolveErrorMessage(error), 'Close', {
             duration: 3500
           });

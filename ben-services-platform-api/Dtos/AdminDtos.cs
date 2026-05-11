@@ -11,3 +11,10 @@ public class AdminStatusUpdateRequestDto
 {
     public bool IsActive { get; set; }
 }
+
+public class AdminCreateResponseDto
+{
+    public string Message { get; set; } = string.Empty;
+    public bool EmailSent { get; set; }
+    public AdminResponseDto Admin { get; set; } = new();
+}
