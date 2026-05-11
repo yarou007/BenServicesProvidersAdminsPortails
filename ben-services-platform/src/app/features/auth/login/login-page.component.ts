@@ -68,8 +68,18 @@ export class LoginPageComponent {
   }
 
   private resolveErrorMessage(error: unknown): string {
-    if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
-      return error.error.message;
+    if (error instanceof HttpErrorResponse) {
+      if (typeof error.error?.message === 'string') {
+        return error.error.message;
+      }
+
+      if (error.status === 404) {
+        return 'Login API is unavailable on this deployment. Please redeploy the backend with authentication enabled.';
+      }
+
+      if (error.status === 0) {
+        return 'Unable to reach the API server. Check backend URL, CORS, and deployment status.';
+      }
     }
 
     return 'Unable to sign in. Check your credentials and try again.';

@@ -14,7 +14,7 @@ public static class DatabaseSeeder
         IHostEnvironment hostEnvironment,
         IPasswordHasher<AdminEntity> passwordHasher)
     {
-        if (hostEnvironment.IsDevelopment() && !await dbContext.Admins.AnyAsync())
+        if (!await dbContext.Admins.AnyAsync())
         {
             var seedEmail = configuration["DEFAULT_ADMIN_EMAIL"]?.Trim();
             var seedPassword = configuration["DEFAULT_ADMIN_PASSWORD"];
@@ -22,29 +22,44 @@ public static class DatabaseSeeder
 
             if (!string.IsNullOrWhiteSpace(seedEmail)
                 && !string.IsNullOrWhiteSpace(seedPassword)
-                && !string.IsNullOrWhiteSpace(seedFullName)
-                && PasswordPolicyValidator.IsStrong(seedPassword, out _))
+                && !string.IsNullOrWhiteSpace(seedFullName))
             {
-                var normalizedEmail = seedEmail.ToLowerInvariant();
-                var usernameBase = CredentialGenerator.SanitizeUsernameBase(normalizedEmail);
-                var username = await BuildUniqueUsernameAsync(dbContext, usernameBase);
-                var now = DateTime.UtcNow;
-
-                var admin = new AdminEntity
+                if (!PasswordPolicyValidator.IsStrong(seedPassword, out var passwordPolicyError))
                 {
-                    FullName = seedFullName,
-                    Email = normalizedEmail,
-                    Username = username,
-                    Role = AdminRole.Admin,
-                    IsActive = true,
-                    MustChangePassword = true,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                };
+                    if (!hostEnvironment.IsDevelopment())
+                    {
+                        throw new InvalidOperationException(
+                            $"DEFAULT_ADMIN_PASSWORD does not satisfy password policy: {passwordPolicyError}");
+                    }
+                }
+                else
+                {
+                    var normalizedEmail = seedEmail.ToLowerInvariant();
+                    var usernameBase = CredentialGenerator.SanitizeUsernameBase(normalizedEmail);
+                    var username = await BuildUniqueUsernameAsync(dbContext, usernameBase);
+                    var now = DateTime.UtcNow;
 
-                admin.PasswordHash = passwordHasher.HashPassword(admin, seedPassword);
-                dbContext.Admins.Add(admin);
-                await dbContext.SaveChangesAsync();
+                    var admin = new AdminEntity
+                    {
+                        FullName = seedFullName,
+                        Email = normalizedEmail,
+                        Username = username,
+                        Role = AdminRole.Admin,
+                        IsActive = true,
+                        MustChangePassword = true,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    };
+
+                    admin.PasswordHash = passwordHasher.HashPassword(admin, seedPassword);
+                    dbContext.Admins.Add(admin);
+                    await dbContext.SaveChangesAsync();
+                }
+            }
+            else if (!hostEnvironment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    "No admin account exists. Set DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD, and DEFAULT_ADMIN_FULLNAME to bootstrap the first admin.");
             }
         }
 
