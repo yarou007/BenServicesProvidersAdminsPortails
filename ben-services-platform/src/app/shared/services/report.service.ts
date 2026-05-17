@@ -74,7 +74,7 @@ export class ReportService {
   readonly applicationReportCards$ = this.applicationService.applications$.pipe(
     map((applications) => {
       const pending = applications.filter((application) => application.status === 'Pending').length;
-      const approved = applications.filter((application) => application.status === 'Approved').length;
+      const approved = applications.filter((application) => application.status === 'Accepted').length;
       const rejected = applications.filter((application) => application.status === 'Rejected').length;
 
       return [
@@ -124,7 +124,7 @@ export class ReportService {
       return [
         { label: 'Submitted', value: applications.length, trend: 'up' },
         { label: 'Pending', value: applications.filter((item) => item.status === 'Pending').length, trend: 'stable' },
-        { label: 'Approved', value: applications.filter((item) => item.status === 'Approved').length, trend: 'up' }
+        { label: 'Accepted', value: applications.filter((item) => item.status === 'Accepted').length, trend: 'up' }
       ];
     }
 

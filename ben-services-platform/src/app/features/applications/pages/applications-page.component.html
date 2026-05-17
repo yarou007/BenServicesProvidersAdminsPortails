@@ -1,7 +1,7 @@
 <section class="applications-page">
   <header>
     <h1>Applications Review</h1>
-    <p>Review incoming provider applications from the public submission form.</p>
+    <p>Review, request updates, accept, verify, and convert provider applications.</p>
   </header>
 
   <section class="table-shell">
@@ -9,14 +9,24 @@
       @if (!isCompact()) {
         <div class="table-wrap">
           <table mat-table [dataSource]="applications">
-            <ng-container matColumnDef="applicantName">
-              <th mat-header-cell *matHeaderCellDef>Applicant Name</th>
+            <ng-container matColumnDef="fullName">
+              <th mat-header-cell *matHeaderCellDef>Full Name</th>
               <td mat-cell *matCellDef="let row">{{ row.fullName }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="company">
-              <th mat-header-cell *matHeaderCellDef>Company</th>
+            <ng-container matColumnDef="businessName">
+              <th mat-header-cell *matHeaderCellDef>Business</th>
               <td mat-cell *matCellDef="let row">{{ row.businessName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="phone">
+              <th mat-header-cell *matHeaderCellDef>Phone</th>
+              <td mat-cell *matCellDef="let row">{{ row.phone }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef>Email</th>
+              <td mat-cell *matCellDef="let row">{{ row.email }}</td>
             </ng-container>
 
             <ng-container matColumnDef="serviceType">
@@ -34,8 +44,8 @@
               <td mat-cell *matCellDef="let row">{{ row.state }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="dateSubmitted">
-              <th mat-header-cell *matHeaderCellDef>Date Submitted</th>
+            <ng-container matColumnDef="submittedAt">
+              <th mat-header-cell *matHeaderCellDef>Submitted</th>
               <td mat-cell *matCellDef="let row">{{ row.submittedAt | date: 'mediumDate' }}</td>
             </ng-container>
 
@@ -47,18 +57,49 @@
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let row" class="actions-cell">
-                <button mat-icon-button (click)="viewApplication(row)" aria-label="View application">
+                <button mat-icon-button (click)="viewApplication(row)" aria-label="View details" title="View details">
                   <mat-icon>visibility</mat-icon>
                 </button>
-                <button mat-icon-button (click)="approveApplication(row.id)" aria-label="Approve application">
-                  <mat-icon>check_circle</mat-icon>
+
+                <button mat-icon-button (click)="editNotes(row)" aria-label="Edit notes" title="Edit notes">
+                  <mat-icon>edit_note</mat-icon>
                 </button>
-                <button mat-icon-button (click)="rejectApplication(row.id)" aria-label="Reject application">
-                  <mat-icon>cancel</mat-icon>
-                </button>
-                <button mat-icon-button (click)="requestMoreInfo(row.id)" aria-label="Request more info">
-                  <mat-icon>help</mat-icon>
-                </button>
+
+                @if (canMarkUnderReview(row)) {
+                  <button mat-icon-button (click)="markUnderReview(row)" aria-label="Mark under review" title="Mark UnderReview">
+                    <mat-icon>manage_search</mat-icon>
+                  </button>
+                }
+
+                @if (canRequestMissingInfo(row)) {
+                  <button mat-icon-button (click)="requestMissingInfo(row)" aria-label="Request missing info" title="Request Missing Info">
+                    <mat-icon>help</mat-icon>
+                  </button>
+                }
+
+                @if (canAccept(row)) {
+                  <button mat-icon-button (click)="acceptApplication(row)" aria-label="Accept" title="Accept">
+                    <mat-icon>check_circle</mat-icon>
+                  </button>
+                }
+
+                @if (canVerify(row)) {
+                  <button mat-icon-button color="primary" (click)="verifyApplication(row)" aria-label="Verify and activate" title="Verify & Activate">
+                    <mat-icon>verified_user</mat-icon>
+                  </button>
+                }
+
+                @if (canConvert(row)) {
+                  <button mat-icon-button color="primary" (click)="convertToProvider(row)" aria-label="Convert to provider" title="Convert to Provider">
+                    <mat-icon>person_add</mat-icon>
+                  </button>
+                }
+
+                @if (canReject(row)) {
+                  <button mat-icon-button color="warn" (click)="rejectApplication(row)" aria-label="Reject" title="Reject">
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                }
               </td>
             </ng-container>
 
@@ -79,9 +120,13 @@
               </div>
 
               <div class="application-body">
+                <p><strong>Phone:</strong> {{ application.phone }}</p>
+                <p><strong>Email:</strong> {{ application.email }}</p>
                 <p><strong>Service:</strong> {{ application.serviceType }}</p>
                 <p><strong>Location:</strong> {{ application.city }}, {{ application.state }}</p>
                 <p><strong>Submitted:</strong> {{ application.submittedAt | date: 'mediumDate' }}</p>
+                <p><strong>Docs:</strong> {{ hasAnyDocument(application) ? 'Uploaded' : 'Not uploaded' }}</p>
+                <p *ngIf="application.convertedProviderId"><strong>Provider ID:</strong> {{ application.convertedProviderId }}</p>
               </div>
 
               <div class="application-actions">
@@ -89,14 +134,52 @@
                   <mat-icon>visibility</mat-icon>
                   View
                 </button>
-                <button mat-stroked-button color="primary" (click)="approveApplication(application.id)">
-                  <mat-icon>check_circle</mat-icon>
-                  Approve
+                <button mat-stroked-button (click)="editNotes(application)">
+                  <mat-icon>edit_note</mat-icon>
+                  Notes
                 </button>
-                <button mat-stroked-button color="warn" (click)="rejectApplication(application.id)">
-                  <mat-icon>cancel</mat-icon>
-                  Reject
-                </button>
+
+                @if (canMarkUnderReview(application)) {
+                  <button mat-stroked-button (click)="markUnderReview(application)">
+                    <mat-icon>manage_search</mat-icon>
+                    UnderReview
+                  </button>
+                }
+
+                @if (canRequestMissingInfo(application)) {
+                  <button mat-stroked-button (click)="requestMissingInfo(application)">
+                    <mat-icon>help</mat-icon>
+                    Missing Info
+                  </button>
+                }
+
+                @if (canAccept(application)) {
+                  <button mat-stroked-button color="primary" (click)="acceptApplication(application)">
+                    <mat-icon>check_circle</mat-icon>
+                    Accept
+                  </button>
+                }
+
+                @if (canVerify(application)) {
+                  <button mat-stroked-button color="primary" (click)="verifyApplication(application)">
+                    <mat-icon>verified_user</mat-icon>
+                    Verify
+                  </button>
+                }
+
+                @if (canConvert(application)) {
+                  <button mat-stroked-button color="primary" (click)="convertToProvider(application)">
+                    <mat-icon>person_add</mat-icon>
+                    Convert
+                  </button>
+                }
+
+                @if (canReject(application)) {
+                  <button mat-stroked-button color="warn" (click)="rejectApplication(application)">
+                    <mat-icon>cancel</mat-icon>
+                    Reject
+                  </button>
+                }
               </div>
             </article>
           }

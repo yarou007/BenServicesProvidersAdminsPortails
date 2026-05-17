@@ -26,11 +26,15 @@ p {
 
 table {
   width: 100%;
-  min-width: 860px;
+  min-width: 1300px;
 }
 
 .actions-cell {
   white-space: nowrap;
+}
+
+.actions-cell button {
+  margin-right: 0.2rem;
 }
 
 .applications-cards {
@@ -83,5 +87,5 @@ table {
 
 .application-actions button {
   flex: 1;
-  min-width: 110px;
+  min-width: 112px;
 }

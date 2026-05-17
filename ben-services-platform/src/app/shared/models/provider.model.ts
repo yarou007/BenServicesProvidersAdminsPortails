@@ -2,7 +2,7 @@ export type ServiceType = 'Locksmith' | 'Glass' | 'Both';
 
 export type VerificationStatus = 'New' | 'Contacted' | 'Verified' | 'Active' | 'Inactive';
 
-export type ProviderSource = 'Google' | 'Referral' | 'Form' | 'Manual';
+export type ProviderSource = 'Google' | 'Referral' | 'Form' | 'Manual' | 'PublicWebsite';
 
 export interface Provider {
   id: number;

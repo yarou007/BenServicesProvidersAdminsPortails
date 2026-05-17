@@ -16,6 +16,7 @@ interface ChangePasswordResponse {
 
 const AUTH_TOKEN_STORAGE_KEY = 'ben_services_platform_auth_token';
 const AUTH_ADMIN_STORAGE_KEY = 'ben_services_platform_auth_admin';
+const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'STAFF']);
 
 @Injectable({
   providedIn: 'root'
@@ -75,6 +76,15 @@ export class AuthService {
 
   hasRole(role: string): boolean {
     return this.adminSignal()?.role === role;
+  }
+
+  getRole(): string | null {
+    return this.adminSignal()?.role ?? null;
+  }
+
+  isAdminRole(): boolean {
+    const role = this.getRole();
+    return role ? ADMIN_ROLES.has(role) : false;
   }
 
   mustChangePassword(): boolean {

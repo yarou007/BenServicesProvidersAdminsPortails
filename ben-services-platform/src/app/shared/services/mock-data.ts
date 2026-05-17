@@ -433,7 +433,7 @@ export const MOCK_APPLICATIONS: ProviderApplication[] = [
     workingHours: '8:00 AM - 6:00 PM',
     message: 'Need more details about onboarding process.',
     source: 'Form',
-    status: 'More Info Requested',
+    status: 'MissingInfo',
     submittedAt: '2026-05-01T08:15:00Z'
   }
 ];

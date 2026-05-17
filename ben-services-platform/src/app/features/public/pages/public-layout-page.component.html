@@ -1,0 +1,33 @@
+<div class="public-shell">
+  <header class="site-header">
+    <a routerLink="/" class="brand">Ben's Services</a>
+
+    <nav class="site-nav">
+      <a routerLink="/" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a routerLink="/providers" routerLinkActive="active-link">Providers</a>
+      <a routerLink="/commercial" routerLinkActive="active-link">Commercial</a>
+      <a routerLink="/residential" routerLinkActive="active-link">Residential</a>
+    </nav>
+
+    <a class="admin-link" routerLink="/login">Admin Login</a>
+  </header>
+
+  <main class="public-content">
+    <router-outlet />
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <strong>Ben's Services</strong>
+      <p>Reliable locksmith and glass service network for commercial and residential markets.</p>
+    </div>
+
+    <div class="footer-links">
+      <a routerLink="/apply">Apply as Provider</a>
+      <a routerLink="/request-commercial-service">Request Commercial Service</a>
+      <a routerLink="/residential">Residential (Coming Soon)</a>
+    </div>
+
+    <p class="footer-note">Built for fast response, trusted vendors, and business continuity.</p>
+  </footer>
+</div>

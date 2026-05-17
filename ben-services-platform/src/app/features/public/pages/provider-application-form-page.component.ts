@@ -1,15 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { CITY_OPTIONS, SERVICE_OPTIONS, STATE_OPTIONS } from '../../../shared/services/mock-data';
+import { SERVICE_AREAS_BY_STATE, SERVICE_AREA_STATES, ServiceAreaState } from '../../../shared/data/service-areas';
+import { SERVICE_OPTIONS } from '../../../shared/services/mock-data';
 import { ApplicationService } from '../../../shared/services/application.service';
+
+const ALLOWED_FILE_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png']);
 
 @Component({
   selector: 'app-provider-application-form-page',
@@ -17,13 +23,15 @@ import { ApplicationService } from '../../../shared/services/application.service
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    RouterLink,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
     MatCheckboxModule,
     MatButtonModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './provider-application-form-page.component.html',
   styleUrl: './provider-application-form-page.component.scss',
@@ -33,12 +41,12 @@ export class ProviderApplicationFormPageComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly applicationService = inject(ApplicationService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly serviceOptions = SERVICE_OPTIONS;
-  protected readonly cityOptions = CITY_OPTIONS;
-  protected readonly stateOptions = STATE_OPTIONS;
-
-  protected submitted = false;
+  protected readonly stateOptions = SERVICE_AREA_STATES;
+  protected cityOptions: string[] = [];
 
   protected readonly applicationForm = this.formBuilder.nonNullable.group({
     fullName: ['', [Validators.required]],
@@ -47,23 +55,55 @@ export class ProviderApplicationFormPageComponent {
     email: ['', [Validators.required, Validators.email]],
     serviceType: ['Locksmith', [Validators.required]],
     servicesOffered: [[] as string[], [Validators.required]],
-    citiesCovered: [[] as string[], [Validators.required]],
     state: ['', [Validators.required]],
+    citiesCovered: [[] as string[], [Validators.required]],
     zipCodes: ['', [Validators.required]],
     yearsOfExperience: [1, [Validators.required, Validators.min(0)]],
     emergencyService: [false],
     workingHours: ['', [Validators.required]],
-    message: [''],
-    licenseFileName: ['']
+    message: ['']
   });
 
-  protected onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+  protected isSubmitting = false;
+  protected submissionError = '';
 
-    this.applicationForm.patchValue({
-      licenseFileName: file?.name ?? ''
+  protected selectedLicenseFileName = '';
+  protected selectedInsuranceFileName = '';
+  protected selectedW9FileName = '';
+
+  private selectedLicenseFile: File | null = null;
+  private selectedInsuranceFile: File | null = null;
+  private selectedW9File: File | null = null;
+
+  constructor() {
+    this.applicationForm.controls.state.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((state) => {
+      const normalizedState = state as ServiceAreaState | '';
+
+      this.cityOptions = normalizedState ? [...(SERVICE_AREAS_BY_STATE[normalizedState] ?? [])] : [];
+      this.applicationForm.controls.citiesCovered.setValue([]);
+      this.applicationForm.controls.citiesCovered.markAsUntouched();
     });
+  }
+
+  protected onFileSelected(event: Event, documentType: 'license' | 'insurance' | 'w9'): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    if (!file) {
+      this.assignFile(documentType, null);
+      return;
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (!ALLOWED_FILE_EXTENSIONS.has(extension)) {
+      this.submissionError = 'Only PDF, JPG, JPEG, and PNG files are allowed.';
+      this.assignFile(documentType, null);
+      input.value = '';
+      return;
+    }
+
+    this.submissionError = '';
+    this.assignFile(documentType, file);
   }
 
   protected submitApplication(): void {
@@ -72,6 +112,9 @@ export class ProviderApplicationFormPageComponent {
       return;
     }
 
+    this.isSubmitting = true;
+    this.submissionError = '';
+
     const formValue = this.applicationForm.getRawValue();
     const zipCodes = formValue.zipCodes
       .split(',')
@@ -79,52 +122,72 @@ export class ProviderApplicationFormPageComponent {
       .filter(Boolean);
 
     const payload = {
+      email: formValue.email,
       fullName: formValue.fullName,
       businessName: formValue.businessName,
       phone: formValue.phone,
-      email: formValue.email,
       serviceType: formValue.serviceType as 'Locksmith' | 'Glass' | 'Both',
       servicesOffered: formValue.servicesOffered,
       citiesCovered: formValue.citiesCovered,
-      city: formValue.citiesCovered[0],
       state: formValue.state,
       zipCodes,
-      yearsOfExperience: formValue.yearsOfExperience,
+      yearsOfExperience: Number(formValue.yearsOfExperience),
       emergencyService: formValue.emergencyService,
       workingHours: formValue.workingHours,
       message: formValue.message,
-      licenseFileName: formValue.licenseFileName
+      licenseDocument: this.selectedLicenseFile,
+      insuranceDocument: this.selectedInsuranceFile,
+      w9Document: this.selectedW9File
     };
 
     this.applicationService.submitApplication(payload).subscribe({
       next: () => {
-        this.submitted = true;
-        this.applicationForm.reset({
-          fullName: '',
-          businessName: '',
-          phone: '',
-          email: '',
-          serviceType: 'Locksmith',
-          servicesOffered: [],
-          citiesCovered: [],
-          state: '',
-          zipCodes: '',
-          yearsOfExperience: 1,
-          emergencyService: false,
-          workingHours: '',
-          message: '',
-          licenseFileName: ''
+        this.isSubmitting = false;
+        this.snackBar.open('Application submitted. We will review it and contact you by email.', 'Close', {
+          duration: 3200
         });
 
-        this.snackBar.open('Application Submitted! Thank you for applying.', 'Close', {
-          duration: 3200
-        });
+        this.router.navigate(['/provider/pending']);
       },
-      error: () => {
-        this.snackBar.open('Unable to submit application right now. Please retry.', 'Close', {
-          duration: 3200
+      error: (error) => {
+        this.isSubmitting = false;
+
+        const message =
+          error?.error?.message ||
+          error?.error?.title ||
+          'Unable to submit application right now. Please retry.';
+
+        this.submissionError = message;
+        this.snackBar.open(message, 'Close', {
+          duration: 4200
         });
       }
     });
+  }
+
+  protected hasControlError(controlName: keyof typeof this.applicationForm.controls, errorName: string): boolean {
+    const control = this.applicationForm.controls[controlName];
+    return control.touched && control.hasError(errorName);
+  }
+
+  protected isCitySelectionDisabled(): boolean {
+    return !this.applicationForm.controls.state.value;
+  }
+
+  private assignFile(documentType: 'license' | 'insurance' | 'w9', file: File | null): void {
+    if (documentType === 'license') {
+      this.selectedLicenseFile = file;
+      this.selectedLicenseFileName = file?.name ?? '';
+      return;
+    }
+
+    if (documentType === 'insurance') {
+      this.selectedInsuranceFile = file;
+      this.selectedInsuranceFileName = file?.name ?? '';
+      return;
+    }
+
+    this.selectedW9File = file;
+    this.selectedW9FileName = file?.name ?? '';
   }
 }

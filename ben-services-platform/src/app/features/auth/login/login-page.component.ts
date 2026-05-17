@@ -58,7 +58,8 @@ export class LoginPageComponent {
           duration: 1800
         });
 
-        this.router.navigate([admin.mustChangePassword ? '/change-password' : '/dashboard']);
+        const nextRoute = admin.mustChangePassword ? '/change-password' : admin.role === 'PROVIDER' ? '/' : '/dashboard';
+        this.router.navigate([nextRoute]);
       },
       error: (error: unknown) => {
         this.loading.set(false);

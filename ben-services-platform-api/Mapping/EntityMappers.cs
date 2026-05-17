@@ -69,6 +69,7 @@ public static class EntityMappers
         return new ProviderApplicationDto
         {
             Id = entity.Id,
+            UserId = entity.UserId,
             FullName = entity.FullName,
             BusinessName = entity.BusinessName,
             Phone = entity.Phone,
@@ -85,13 +86,27 @@ public static class EntityMappers
             Message = entity.Message,
             Source = entity.Source,
             Status = entity.Status,
+            AdminNotes = entity.AdminNotes,
+            MissingInfoReason = entity.MissingInfoReason,
+            RejectionReason = entity.RejectionReason,
+            VerificationNotes = entity.VerificationNotes,
+            ConvertedProviderId = entity.ConvertedProviderId,
             SubmittedAt = entity.SubmittedAt,
-            LicenseFileName = entity.LicenseFileName
+            UpdatedAt = entity.UpdatedAt,
+            ReviewedAt = entity.ReviewedAt,
+            VerifiedAt = entity.VerifiedAt,
+            RejectedAt = entity.RejectedAt,
+            LicenseFileName = entity.LicenseFileName,
+            LicenseFileUrl = entity.LicenseFileUrl,
+            InsuranceFileUrl = entity.InsuranceFileUrl,
+            W9FileUrl = entity.W9FileUrl
         };
     }
 
     public static ProviderApplicationEntity ToEntity(this ProviderApplicationCreateRequest request)
     {
+        var now = DateTime.UtcNow;
+
         return new ProviderApplicationEntity
         {
             FullName = request.FullName.Trim(),
@@ -109,8 +124,9 @@ public static class EntityMappers
             WorkingHours = request.WorkingHours.Trim(),
             Message = request.Message.Trim(),
             Source = "Form",
-            Status = "Pending",
-            SubmittedAt = DateTime.UtcNow,
+            Status = ProviderApplicationStatus.Pending,
+            SubmittedAt = now,
+            UpdatedAt = now,
             LicenseFileName = string.IsNullOrWhiteSpace(request.LicenseFileName) ? null : request.LicenseFileName.Trim()
         };
     }
@@ -129,6 +145,33 @@ public static class EntityMappers
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
             CreatedByAdminId = entity.CreatedByAdminId
+        };
+    }
+
+    public static ClientServiceRequestDto ToDto(this ClientServiceRequestEntity entity)
+    {
+        return new ClientServiceRequestDto
+        {
+            Id = entity.Id,
+            ClientType = entity.ClientType,
+            CompanyName = entity.CompanyName,
+            ContactName = entity.ContactName,
+            Phone = entity.Phone,
+            Email = entity.Email,
+            ServiceCategory = entity.ServiceCategory,
+            Urgency = entity.Urgency,
+            Address = entity.Address,
+            City = entity.City,
+            State = entity.State,
+            ZipCode = entity.ZipCode,
+            Description = entity.Description,
+            PreferredDateTime = entity.PreferredDateTime,
+            Status = entity.Status,
+            Source = entity.Source,
+            AdminNotes = entity.AdminNotes,
+            PhotoFileUrl = entity.PhotoFileUrl,
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt
         };
     }
 }

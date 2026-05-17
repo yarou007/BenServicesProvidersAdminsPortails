@@ -13,7 +13,7 @@ namespace BenServicesPlatform.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = $"{AdminRole.SuperAdmin},{AdminRole.Admin},{AdminRole.Staff}")]
 public class ProvidersController(
     AppDbContext dbContext,
     ILogger<ProvidersController> logger,

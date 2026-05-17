@@ -11,16 +11,34 @@ public class JwtTokenService(JwtSettings jwtSettings) : IJwtTokenService
 {
     public string GenerateToken(AdminEntity admin)
     {
+        return GenerateToken(
+            userId: admin.Id,
+            email: admin.Email,
+            username: admin.Username,
+            role: admin.Role);
+    }
+
+    public string GenerateToken(ProviderAccountEntity providerAccount)
+    {
+        return GenerateToken(
+            userId: providerAccount.Id,
+            email: providerAccount.Email,
+            username: providerAccount.Email,
+            role: providerAccount.Role);
+    }
+
+    private string GenerateToken(int userId, string email, string username, string role)
+    {
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, admin.Id.ToString()),
-            new(ClaimTypes.NameIdentifier, admin.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, admin.Email),
-            new(ClaimTypes.Email, admin.Email),
-            new(ClaimTypes.Name, admin.Username),
-            new("username", admin.Username),
-            new(ClaimTypes.Role, admin.Role),
-            new("role", admin.Role)
+            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(JwtRegisteredClaimNames.Email, email),
+            new(ClaimTypes.Email, email),
+            new(ClaimTypes.Name, username),
+            new("username", username),
+            new(ClaimTypes.Role, role),
+            new("role", role)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret));

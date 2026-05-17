@@ -1,0 +1,79 @@
+.provider-landing-page {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 2.4rem);
+}
+
+.hero,
+.service-types,
+.requirements {
+  border: 1px solid #d6e3f2;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 1rem 1.1rem;
+}
+
+.hero {
+  background: linear-gradient(140deg, #ffffff 10%, #e8f3ff 100%);
+  display: grid;
+  gap: 0.7rem;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #0f5d91;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.hero h1,
+h2 {
+  margin: 0;
+}
+
+.hero p,
+p,
+li {
+  color: #4f5f73;
+}
+
+.hero p {
+  margin: 0;
+  max-width: 760px;
+}
+
+.section-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.benefits {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.benefits article {
+  border: 1px solid #d7e4f3;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0.9rem;
+}
+
+.benefits p {
+  margin: 0.45rem 0 0;
+}
+
+ul {
+  margin: 0.45rem 0 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.cta-row {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+}

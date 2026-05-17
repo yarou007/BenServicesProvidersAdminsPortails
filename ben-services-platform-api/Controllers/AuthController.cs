@@ -16,7 +16,8 @@ namespace BenServicesPlatform.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController(
     AppDbContext dbContext,
-    IPasswordHasher<AdminEntity> passwordHasher,
+    IPasswordHasher<AdminEntity> adminPasswordHasher,
+    IPasswordHasher<ProviderAccountEntity> providerPasswordHasher,
     IJwtTokenService jwtTokenService,
     IHostEnvironment hostEnvironment) : ControllerBase
 {
@@ -34,33 +35,65 @@ public class AuthController(
         var admin = await dbContext.Admins.FirstOrDefaultAsync(item =>
             item.Email.ToLower() == normalizedLogin || item.Username.ToLower() == normalizedLogin);
 
-        if (admin is null)
+        if (admin is not null)
+        {
+            if (!admin.IsActive)
+            {
+                return Unauthorized(new { message = "This admin account is inactive." });
+            }
+
+            var passwordResult = adminPasswordHasher.VerifyHashedPassword(admin, admin.PasswordHash, request.Password);
+            if (passwordResult == PasswordVerificationResult.Failed)
+            {
+                return Unauthorized(new { message = "Invalid credentials." });
+            }
+
+            if (passwordResult == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                admin.PasswordHash = adminPasswordHasher.HashPassword(admin, request.Password);
+                await dbContext.SaveChangesAsync();
+            }
+
+            var adminToken = jwtTokenService.GenerateToken(admin);
+            return Ok(new LoginResponseDto
+            {
+                Token = adminToken,
+                Admin = admin.ToDto()
+            });
+        }
+
+        var providerAccount = await dbContext.ProviderAccounts.FirstOrDefaultAsync(item => item.Email == normalizedLogin);
+        if (providerAccount is null)
         {
             return Unauthorized(new { message = "Invalid credentials." });
         }
 
-        if (!admin.IsActive)
+        if (!string.Equals(providerAccount.Status, ProviderAccountStatus.Active, StringComparison.OrdinalIgnoreCase))
         {
-            return Unauthorized(new { message = "This admin account is inactive." });
+            return Unauthorized(new { message = "This provider account is not active yet." });
         }
 
-        var passwordResult = passwordHasher.VerifyHashedPassword(admin, admin.PasswordHash, request.Password);
-        if (passwordResult == PasswordVerificationResult.Failed)
+        var providerPasswordResult = providerPasswordHasher.VerifyHashedPassword(
+            providerAccount,
+            providerAccount.PasswordHash,
+            request.Password);
+
+        if (providerPasswordResult == PasswordVerificationResult.Failed)
         {
             return Unauthorized(new { message = "Invalid credentials." });
         }
 
-        if (passwordResult == PasswordVerificationResult.SuccessRehashNeeded)
+        if (providerPasswordResult == PasswordVerificationResult.SuccessRehashNeeded)
         {
-            admin.PasswordHash = passwordHasher.HashPassword(admin, request.Password);
+            providerAccount.PasswordHash = providerPasswordHasher.HashPassword(providerAccount, request.Password);
             await dbContext.SaveChangesAsync();
         }
 
-        var token = jwtTokenService.GenerateToken(admin);
+        var providerToken = jwtTokenService.GenerateToken(providerAccount);
         return Ok(new LoginResponseDto
         {
-            Token = token,
-            Admin = admin.ToDto()
+            Token = providerToken,
+            Admin = await BuildProviderResponseAsync(providerAccount)
         });
     }
 
@@ -68,22 +101,46 @@ public class AuthController(
     [Authorize]
     public async Task<ActionResult<AdminResponseDto>> MeAsync()
     {
-        var adminId = HttpContext.GetAuthenticatedAdminId();
-        if (adminId is null)
+        var userId = HttpContext.GetAuthenticatedUserId();
+        if (userId is null)
         {
             return Unauthorized();
         }
 
-        var admin = await dbContext.Admins
+        if (HttpContext.IsAuthenticatedRole(AdminRole.SuperAdmin, AdminRole.Admin, AdminRole.Staff))
+        {
+            var admin = await dbContext.Admins
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == userId && item.IsActive);
+
+            if (admin is null)
+            {
+                return Unauthorized();
+            }
+
+            return Ok(admin.ToDto());
+        }
+
+        if (!HttpContext.IsAuthenticatedRole(ProviderAccountRole.Provider))
+        {
+            return Unauthorized();
+        }
+
+        var providerAccount = await dbContext.ProviderAccounts
             .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.Id == adminId && item.IsActive);
+            .FirstOrDefaultAsync(item => item.Id == userId);
 
-        if (admin is null)
+        if (providerAccount is null)
         {
             return Unauthorized();
         }
 
-        return Ok(admin.ToDto());
+        if (!string.Equals(providerAccount.Status, ProviderAccountStatus.Active, StringComparison.OrdinalIgnoreCase))
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await BuildProviderResponseAsync(providerAccount));
     }
 
     [HttpPost("change-password")]
@@ -107,32 +164,71 @@ public class AuthController(
             return BadRequest(new { message = passwordError });
         }
 
-        var adminId = HttpContext.GetAuthenticatedAdminId();
-        if (adminId is null)
+        var userId = HttpContext.GetAuthenticatedUserId();
+        if (userId is null)
         {
             return Unauthorized();
         }
 
-        var admin = await dbContext.Admins.FirstOrDefaultAsync(item => item.Id == adminId && item.IsActive);
-        if (admin is null)
+        if (HttpContext.IsAuthenticatedRole(AdminRole.SuperAdmin, AdminRole.Admin, AdminRole.Staff))
+        {
+            var admin = await dbContext.Admins.FirstOrDefaultAsync(item => item.Id == userId && item.IsActive);
+            if (admin is null)
+            {
+                return Unauthorized();
+            }
+
+            var currentPasswordResult = adminPasswordHasher.VerifyHashedPassword(admin, admin.PasswordHash, request.CurrentPassword);
+            if (currentPasswordResult == PasswordVerificationResult.Failed)
+            {
+                return BadRequest(new { message = "Current password is incorrect." });
+            }
+
+            admin.PasswordHash = adminPasswordHasher.HashPassword(admin, request.NewPassword);
+            admin.MustChangePassword = false;
+            await dbContext.SaveChangesAsync();
+
+            return Ok(new ChangePasswordResponseDto
+            {
+                Message = "Password changed successfully",
+                Admin = admin.ToDto()
+            });
+        }
+
+        if (!HttpContext.IsAuthenticatedRole(ProviderAccountRole.Provider))
         {
             return Unauthorized();
         }
 
-        var currentPasswordResult = passwordHasher.VerifyHashedPassword(admin, admin.PasswordHash, request.CurrentPassword);
-        if (currentPasswordResult == PasswordVerificationResult.Failed)
+        var providerAccount = await dbContext.ProviderAccounts.FirstOrDefaultAsync(item => item.Id == userId);
+        if (providerAccount is null)
+        {
+            return Unauthorized();
+        }
+
+        if (!string.Equals(providerAccount.Status, ProviderAccountStatus.Active, StringComparison.OrdinalIgnoreCase))
+        {
+            return Unauthorized(new { message = "This provider account is not active." });
+        }
+
+        var providerPasswordResult = providerPasswordHasher.VerifyHashedPassword(
+            providerAccount,
+            providerAccount.PasswordHash,
+            request.CurrentPassword);
+
+        if (providerPasswordResult == PasswordVerificationResult.Failed)
         {
             return BadRequest(new { message = "Current password is incorrect." });
         }
 
-        admin.PasswordHash = passwordHasher.HashPassword(admin, request.NewPassword);
-        admin.MustChangePassword = false;
+        providerAccount.PasswordHash = providerPasswordHasher.HashPassword(providerAccount, request.NewPassword);
+        providerAccount.MustChangePassword = false;
         await dbContext.SaveChangesAsync();
 
         return Ok(new ChangePasswordResponseDto
         {
             Message = "Password changed successfully",
-            Admin = admin.ToDto()
+            Admin = await BuildProviderResponseAsync(providerAccount)
         });
     }
 
@@ -193,11 +289,43 @@ public class AuthController(
             MustChangePassword = false
         };
 
-        admin.PasswordHash = passwordHasher.HashPassword(admin, request.Password);
+        admin.PasswordHash = adminPasswordHasher.HashPassword(admin, request.Password);
 
         dbContext.Admins.Add(admin);
         await dbContext.SaveChangesAsync();
 
         return CreatedAtRoute("GetAdminById", new { id = admin.Id }, admin.ToDto());
+    }
+
+    private async Task<AdminResponseDto> BuildProviderResponseAsync(ProviderAccountEntity account)
+    {
+        var provider = await dbContext.Providers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Email.ToLower() == account.Email);
+
+        var application = provider is null
+            ? await dbContext.ProviderApplications
+                .AsNoTracking()
+                .Where(item => item.Email.ToLower() == account.Email)
+                .OrderByDescending(item => item.SubmittedAt)
+                .FirstOrDefaultAsync()
+            : null;
+
+        var fullName = provider?.FullName
+            ?? application?.FullName
+            ?? account.Email;
+
+        return new AdminResponseDto
+        {
+            Id = account.Id,
+            FullName = fullName,
+            Email = account.Email,
+            Username = account.Email,
+            Role = ProviderAccountRole.Provider,
+            IsActive = string.Equals(account.Status, ProviderAccountStatus.Active, StringComparison.OrdinalIgnoreCase),
+            MustChangePassword = account.MustChangePassword,
+            CreatedAt = account.CreatedAt,
+            UpdatedAt = account.UpdatedAt
+        };
     }
 }
