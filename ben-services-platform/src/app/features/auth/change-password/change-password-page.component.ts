@@ -63,7 +63,8 @@ export class ChangePasswordPageComponent {
         this.snackBar.open('Password updated successfully.', 'Close', {
           duration: 2500
         });
-        this.router.navigate(['/dashboard']);
+        const nextRoute = this.authService.getCurrentUser()?.role === 'PROVIDER' ? '/' : '/dashboard';
+        this.router.navigate([nextRoute]);
       },
       error: (error: unknown) => {
         this.loading.set(false);

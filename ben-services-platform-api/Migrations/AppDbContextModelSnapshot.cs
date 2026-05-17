@@ -87,6 +87,167 @@ namespace BenServicesPlatform.Api.Migrations
                     b.ToTable("admins", (string)null);
                 });
 
+            modelBuilder.Entity("BenServicesPlatform.Api.Entities.ClientServiceRequestEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("varchar(240)");
+
+                    b.Property<string>("AdminNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("ClientType")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("ContactName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("varchar(3000)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("PhotoFileUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime?>("PreferredDateTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ServiceCategory")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Urgency")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("ZipCode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("City");
+
+                    b.HasIndex("ClientType");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("State");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("client_service_requests", (string)null);
+                });
+
+            modelBuilder.Entity("BenServicesPlatform.Api.Entities.ProviderAccountEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Role");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("provider_accounts", (string)null);
+                });
+
             modelBuilder.Entity("BenServicesPlatform.Api.Entities.ProviderApplicationEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -94,6 +255,10 @@ namespace BenServicesPlatform.Api.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<string>("BusinessName")
                         .IsRequired()
@@ -109,6 +274,9 @@ namespace BenServicesPlatform.Api.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("varchar(120)");
 
+                    b.Property<int?>("ConvertedProviderId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -122,19 +290,41 @@ namespace BenServicesPlatform.Api.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("varchar(120)");
 
+                    b.Property<string>("InsuranceFileUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<string>("LicenseFileName")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
+
+                    b.Property<string>("LicenseFileUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("varchar(2000)");
 
+                    b.Property<string>("MissingInfoReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("ServiceType")
                         .IsRequired()
@@ -163,6 +353,23 @@ namespace BenServicesPlatform.Api.Migrations
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VerificationNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("W9FileUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<string>("WorkingHours")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -179,11 +386,15 @@ namespace BenServicesPlatform.Api.Migrations
 
                     b.HasIndex("City");
 
+                    b.HasIndex("ConvertedProviderId");
+
                     b.HasIndex("State");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("SubmittedAt");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("provider_applications", (string)null);
                 });
@@ -329,9 +540,24 @@ namespace BenServicesPlatform.Api.Migrations
                     b.Navigation("CreatedByAdmin");
                 });
 
+            modelBuilder.Entity("BenServicesPlatform.Api.Entities.ProviderApplicationEntity", b =>
+                {
+                    b.HasOne("BenServicesPlatform.Api.Entities.ProviderAccountEntity", "User")
+                        .WithMany("Applications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("BenServicesPlatform.Api.Entities.AdminEntity", b =>
                 {
                     b.Navigation("CreatedAdmins");
+                });
+
+            modelBuilder.Entity("BenServicesPlatform.Api.Entities.ProviderAccountEntity", b =>
+                {
+                    b.Navigation("Applications");
                 });
 #pragma warning restore 612, 618
         }

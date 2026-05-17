@@ -14,7 +14,7 @@ namespace BenServicesPlatform.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = $"{AdminRole.SuperAdmin},{AdminRole.Admin},{AdminRole.Staff}")]
 public class AdminsController(
     AppDbContext dbContext,
     IPasswordHasher<AdminEntity> passwordHasher,

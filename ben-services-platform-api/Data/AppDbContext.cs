@@ -8,6 +8,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ProviderEntity> Providers => Set<ProviderEntity>();
     public DbSet<ProviderApplicationEntity> ProviderApplications => Set<ProviderApplicationEntity>();
     public DbSet<AdminEntity> Admins => Set<AdminEntity>();
+    public DbSet<ProviderAccountEntity> ProviderAccounts => Set<ProviderAccountEntity>();
+    public DbSet<ClientServiceRequestEntity> ClientServiceRequests => Set<ClientServiceRequestEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +37,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .WithMany(item => item.CreatedAdmins)
                 .HasForeignKey(item => item.CreatedByAdminId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProviderAccountEntity>(entity =>
+        {
+            entity.ToTable("provider_accounts");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Id).ValueGeneratedOnAdd();
+            entity.Property(item => item.Email).HasMaxLength(200).IsRequired();
+            entity.Property(item => item.PasswordHash).HasMaxLength(500).IsRequired();
+            entity.Property(item => item.Role).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.Status).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.MustChangePassword).IsRequired();
+            entity.Property(item => item.CreatedAt).HasColumnType("datetime(6)");
+            entity.Property(item => item.UpdatedAt).HasColumnType("datetime(6)");
+
+            entity.HasIndex(item => item.Email).IsUnique();
+            entity.HasIndex(item => item.Role);
+            entity.HasIndex(item => item.Status);
         });
 
         modelBuilder.Entity<ProviderEntity>(entity =>
@@ -90,15 +110,66 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(item => item.ZipCodesJson).HasColumnType("longtext").IsRequired();
             entity.Property(item => item.WorkingHours).HasMaxLength(80).IsRequired();
             entity.Property(item => item.Message).HasMaxLength(2000).IsRequired();
+            entity.Property(item => item.LicenseFileUrl).HasMaxLength(500);
+            entity.Property(item => item.InsuranceFileUrl).HasMaxLength(500);
+            entity.Property(item => item.W9FileUrl).HasMaxLength(500);
             entity.Property(item => item.Source).HasMaxLength(32).IsRequired();
             entity.Property(item => item.Status).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.AdminNotes).HasMaxLength(4000);
+            entity.Property(item => item.MissingInfoReason).HasMaxLength(4000);
+            entity.Property(item => item.RejectionReason).HasMaxLength(4000);
+            entity.Property(item => item.VerificationNotes).HasMaxLength(4000);
             entity.Property(item => item.SubmittedAt).HasColumnType("datetime(6)");
+            entity.Property(item => item.UpdatedAt).HasColumnType("datetime(6)");
+            entity.Property(item => item.ReviewedAt).HasColumnType("datetime(6)");
+            entity.Property(item => item.VerifiedAt).HasColumnType("datetime(6)");
+            entity.Property(item => item.RejectedAt).HasColumnType("datetime(6)");
             entity.Property(item => item.LicenseFileName).HasMaxLength(255);
 
             entity.HasIndex(item => item.Status);
             entity.HasIndex(item => item.City);
             entity.HasIndex(item => item.State);
             entity.HasIndex(item => item.SubmittedAt);
+            entity.HasIndex(item => item.UserId);
+            entity.HasIndex(item => item.ConvertedProviderId);
+
+            entity.HasOne(item => item.User)
+                .WithMany(item => item.Applications)
+                .HasForeignKey(item => item.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ClientServiceRequestEntity>(entity =>
+        {
+            entity.ToTable("client_service_requests");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Id).ValueGeneratedOnAdd();
+            entity.Property(item => item.ClientType).HasMaxLength(24).IsRequired();
+            entity.Property(item => item.CompanyName).HasMaxLength(180).IsRequired();
+            entity.Property(item => item.ContactName).HasMaxLength(120).IsRequired();
+            entity.Property(item => item.Phone).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.Email).HasMaxLength(200).IsRequired();
+            entity.Property(item => item.ServiceCategory).HasMaxLength(64).IsRequired();
+            entity.Property(item => item.Urgency).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.Address).HasMaxLength(240).IsRequired();
+            entity.Property(item => item.City).HasMaxLength(120).IsRequired();
+            entity.Property(item => item.State).HasMaxLength(16).IsRequired();
+            entity.Property(item => item.ZipCode).HasMaxLength(16).IsRequired();
+            entity.Property(item => item.Description).HasMaxLength(3000).IsRequired();
+            entity.Property(item => item.Status).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.Source).HasMaxLength(64).IsRequired();
+            entity.Property(item => item.PhotoFileUrl).HasMaxLength(500);
+            entity.Property(item => item.AdminNotes).HasMaxLength(4000);
+            entity.Property(item => item.PreferredDateTime).HasColumnType("datetime(6)");
+            entity.Property(item => item.CreatedAt).HasColumnType("datetime(6)");
+            entity.Property(item => item.UpdatedAt).HasColumnType("datetime(6)");
+
+            entity.HasIndex(item => item.ClientType);
+            entity.HasIndex(item => item.Status);
+            entity.HasIndex(item => item.CreatedAt);
+            entity.HasIndex(item => item.Email);
+            entity.HasIndex(item => item.City);
+            entity.HasIndex(item => item.State);
         });
     }
 
@@ -131,6 +202,60 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         var now = DateTime.UtcNow;
 
         foreach (var entry in ChangeTracker.Entries<AdminEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                if (entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = now;
+                }
+
+                entry.Entity.UpdatedAt = now;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = now;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<ProviderAccountEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                if (entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = now;
+                }
+
+                entry.Entity.UpdatedAt = now;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = now;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<ProviderApplicationEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                if (entry.Entity.SubmittedAt == default)
+                {
+                    entry.Entity.SubmittedAt = now;
+                }
+
+                if (entry.Entity.UpdatedAt == default)
+                {
+                    entry.Entity.UpdatedAt = now;
+                }
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = now;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<ClientServiceRequestEntity>())
         {
             if (entry.State == EntityState.Added)
             {

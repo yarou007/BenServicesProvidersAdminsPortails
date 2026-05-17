@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminChildGuard, adminGuard } from './core/guards/admin.guard';
+import { adminChildGuard, adminGuard, anonymousOnlyMatchGuard, authenticatedGuard } from './core/guards/admin.guard';
 import { MainLayoutComponent } from './core/layout/main-layout.component';
 
 export const routes: Routes = [
@@ -8,16 +8,17 @@ export const routes: Routes = [
     loadChildren: () => import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES)
   },
   {
-    path: 'apply',
-    loadChildren: () => import('./features/public/public.routes').then((m) => m.PUBLIC_ROUTES)
-  },
-  {
     path: 'change-password',
-    canActivate: [adminGuard],
+    canActivate: [authenticatedGuard],
     loadComponent: () =>
       import('./features/auth/change-password/change-password-page.component').then(
         (m) => m.ChangePasswordPageComponent
       )
+  },
+  {
+    path: '',
+    canMatch: [anonymousOnlyMatchGuard],
+    loadChildren: () => import('./features/public/public.routes').then((m) => m.PUBLIC_ROUTES)
   },
   {
     path: '',
@@ -58,6 +59,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: 'dashboard'
+    redirectTo: ''
   }
 ];

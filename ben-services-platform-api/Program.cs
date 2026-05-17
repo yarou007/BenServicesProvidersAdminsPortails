@@ -33,23 +33,64 @@ var jwtSettings = new JwtSettings
 jwtSettings.Validate();
 builder.Services.AddSingleton(jwtSettings);
 
+string ResolveConfigValue(params string[] keys)
+{
+    foreach (var key in keys)
+    {
+        var value = builder.Configuration[key];
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+    }
+
+    return string.Empty;
+}
+
 var smtpSettings = new SmtpSettings
 {
-    Host = builder.Configuration["SMTP_HOST"] ?? builder.Configuration["Smtp:Host"] ?? string.Empty,
+    Host = ResolveConfigValue("SMTP_HOST", "MAIL_HOST", "Smtp:Host"),
     Port = int.TryParse(builder.Configuration["SMTP_PORT"] ?? builder.Configuration["Smtp:Port"], out var smtpPort)
         ? smtpPort
         : 587,
-    User = builder.Configuration["SMTP_USER"] ?? builder.Configuration["Smtp:User"] ?? string.Empty,
-    Password = builder.Configuration["SMTP_PASSWORD"] ?? builder.Configuration["Smtp:Password"] ?? string.Empty,
-    FromEmail = builder.Configuration["SMTP_FROM_EMAIL"] ?? builder.Configuration["Smtp:FromEmail"] ?? string.Empty,
-    FromName = builder.Configuration["SMTP_FROM_NAME"] ?? builder.Configuration["Smtp:FromName"] ?? "Ben's Services",
-    FrontendLoginUrl = builder.Configuration["FRONTEND_LOGIN_URL"]
-        ?? builder.Configuration["Smtp:FrontendLoginUrl"]
-        ?? "http://localhost:4200/login"
+    User = ResolveConfigValue(
+        "SMTP_USER",
+        "SMTP_USERNAME",
+        "SMTP_LOGIN",
+        "MAIL_USER",
+        "MAIL_USERNAME",
+        "Smtp:User",
+        "Smtp:Username"),
+    Password = ResolveConfigValue(
+        "SMTP_PASSWORD",
+        "SMTP_PASS",
+        "MAIL_PASSWORD",
+        "BREVO_SMTP_KEY",
+        "Smtp:Password"),
+    FromEmail = ResolveConfigValue(
+        "SMTP_FROM_EMAIL",
+        "SMTP_FROM",
+        "SMTP_SENDER",
+        "MAIL_FROM",
+        "Smtp:FromEmail",
+        "Smtp:Sender"),
+    FromName = ResolveConfigValue("SMTP_FROM_NAME", "MAIL_FROM_NAME", "Smtp:FromName", "Smtp:SenderName"),
+    FrontendLoginUrl = ResolveConfigValue("FRONTEND_LOGIN_URL", "Smtp:FrontendLoginUrl")
 };
+
+if (string.IsNullOrWhiteSpace(smtpSettings.FromName))
+{
+    smtpSettings.FromName = "Ben's Services";
+}
+
+if (string.IsNullOrWhiteSpace(smtpSettings.FrontendLoginUrl))
+{
+    smtpSettings.FrontendLoginUrl = "http://localhost:4200/login";
+}
 
 builder.Services.AddSingleton(smtpSettings);
 builder.Services.AddScoped<IPasswordHasher<AdminEntity>, PasswordHasher<AdminEntity>>();
+builder.Services.AddScoped<IPasswordHasher<ProviderAccountEntity>, PasswordHasher<ProviderAccountEntity>>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 

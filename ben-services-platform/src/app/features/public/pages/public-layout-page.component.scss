@@ -1,0 +1,99 @@
+.public-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(37, 99, 235, 0.1), transparent 32%),
+    radial-gradient(circle at 90% 14%, rgba(14, 116, 144, 0.11), transparent 36%),
+    #f7fafc;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.95rem clamp(1rem, 3vw, 2.4rem);
+  border-bottom: 1px solid rgba(38, 62, 93, 0.12);
+  background: rgba(250, 253, 255, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  font-family: 'Sora', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  text-decoration: none;
+  color: #112b4e;
+}
+
+.site-nav {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.site-nav a,
+.admin-link,
+.footer-links a {
+  text-decoration: none;
+  color: #284364;
+  font-weight: 600;
+}
+
+.site-nav a {
+  padding: 0.36rem 0.58rem;
+  border-radius: 999px;
+}
+
+.active-link {
+  background: #dbeafe;
+  color: #153a63;
+}
+
+.admin-link {
+  border: 1px solid #c0d4eb;
+  padding: 0.45rem 0.7rem;
+  border-radius: 10px;
+}
+
+.public-content {
+  flex: 1;
+}
+
+.site-footer {
+  margin-top: 2rem;
+  padding: 1.2rem clamp(1rem, 3vw, 2.4rem) 1.35rem;
+  display: grid;
+  gap: 0.72rem;
+  border-top: 1px solid #d8e2ee;
+  background: #ffffff;
+}
+
+.site-footer p {
+  margin: 0.25rem 0 0;
+  color: #4f5f73;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.footer-note {
+  font-size: 0.82rem;
+}
+
+@media (max-width: 920px) {
+  .site-header {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .admin-link {
+    justify-self: start;
+  }
+}

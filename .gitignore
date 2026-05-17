@@ -7,3 +7,7 @@ uploads/
 ben-services-platform-api/bin/
 ben-services-platform-api/obj/
 ben-services-platform-api/uploads/
+
+# Local documentation / tracking notes (do not commit)
+docs/
+TASK_PROGRESS.md

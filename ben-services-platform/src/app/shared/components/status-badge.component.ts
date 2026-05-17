@@ -17,15 +17,29 @@ export class StatusBadgeComponent {
   readonly toneClass = computed(() => {
     const normalized = this.label().toLowerCase();
 
-    if (normalized.includes('ready for marketing') || normalized.includes('ready') || normalized.includes('verified') || normalized.includes('active') || normalized.includes('approved')) {
+    if (
+      normalized.includes('ready for marketing') ||
+      normalized.includes('ready') ||
+      normalized.includes('verified') ||
+      normalized.includes('active') ||
+      normalized.includes('approved') ||
+      normalized.includes('converted')
+    ) {
       return 'success';
     }
 
-    if (normalized.includes('almost') || normalized.includes('contacted') || normalized.includes('pending')) {
+    if (
+      normalized.includes('almost') ||
+      normalized.includes('contacted') ||
+      normalized.includes('pending') ||
+      normalized.includes('accepted') ||
+      normalized.includes('underreview') ||
+      normalized.includes('under review')
+    ) {
       return 'warning';
     }
 
-    if (normalized.includes('needs') || normalized.includes('more info')) {
+    if (normalized.includes('needs') || normalized.includes('more info') || normalized.includes('missinginfo')) {
       return 'orange';
     }
 

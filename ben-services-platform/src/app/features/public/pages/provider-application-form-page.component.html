@@ -1,47 +1,52 @@
-<section class="apply-page">
-  <mat-card class="apply-card">
-    <header class="apply-header">
-      <h1>Join Our Service Provider Network</h1>
-      <p>Grow with Ben's Services by joining our locksmith and glass repair partner network.</p>
-    </header>
+<section class="public-form-page">
+  <div class="page-intro">
+    <a routerLink="/providers" class="back-link">Back to Provider Info</a>
+    <h1>Apply to Join Ben's Services Provider Network</h1>
+    <p>
+      Submit your application to join our locksmith and glass service network. After submission, your application is
+      reviewed by our admin team before any account activation.
+    </p>
+  </div>
 
+  <mat-card class="apply-card">
     <form [formGroup]="applicationForm" (ngSubmit)="submitApplication()" novalidate>
+      <h2>Business Profile</h2>
+
       <div class="form-grid">
         <mat-form-field appearance="outline">
           <mat-label>Full Name</mat-label>
           <input matInput formControlName="fullName" />
-          <mat-error *ngIf="applicationForm.controls.fullName.hasError('required')">Full name is required.</mat-error>
+          <mat-error *ngIf="hasControlError('fullName', 'required')">Full name is required.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Business Name</mat-label>
           <input matInput formControlName="businessName" />
-          <mat-error *ngIf="applicationForm.controls.businessName.hasError('required')">
-            Business name is required.
-          </mat-error>
+          <mat-error *ngIf="hasControlError('businessName', 'required')">Business name is required.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Phone</mat-label>
           <input matInput formControlName="phone" placeholder="(123) 456-7890" />
-          <mat-error *ngIf="applicationForm.controls.phone.hasError('required')">Phone is required.</mat-error>
-          <mat-error *ngIf="applicationForm.controls.phone.hasError('pattern')">Enter a valid phone number.</mat-error>
+          <mat-error *ngIf="hasControlError('phone', 'required')">Phone is required.</mat-error>
+          <mat-error *ngIf="hasControlError('phone', 'pattern')">Enter a valid phone number.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Email</mat-label>
           <input matInput type="email" formControlName="email" />
-          <mat-error *ngIf="applicationForm.controls.email.hasError('required')">Email is required.</mat-error>
-          <mat-error *ngIf="applicationForm.controls.email.hasError('email')">Enter a valid email.</mat-error>
+          <mat-error *ngIf="hasControlError('email', 'required')">Email is required.</mat-error>
+          <mat-error *ngIf="hasControlError('email', 'email')">Enter a valid email address.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Service Category</mat-label>
+          <mat-label>Service Type</mat-label>
           <mat-select formControlName="serviceType">
             <mat-option value="Locksmith">Locksmith</mat-option>
             <mat-option value="Glass">Glass</mat-option>
             <mat-option value="Both">Both</mat-option>
           </mat-select>
+          <mat-error *ngIf="hasControlError('serviceType', 'required')">Service type is required.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="span-2">
@@ -51,17 +56,15 @@
               <mat-option [value]="service">{{ service }}</mat-option>
             }
           </mat-select>
+          <mat-error *ngIf="hasControlError('servicesOffered', 'required')">
+            At least one service offered is required.
+          </mat-error>
         </mat-form-field>
+      </div>
 
-        <mat-form-field appearance="outline" class="span-2">
-          <mat-label>City / Cities Covered</mat-label>
-          <mat-select formControlName="citiesCovered" multiple>
-            @for (city of cityOptions; track city) {
-              <mat-option [value]="city">{{ city }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+      <h2>Coverage Area</h2>
 
+      <div class="form-grid">
         <mat-form-field appearance="outline">
           <mat-label>State</mat-label>
           <mat-select formControlName="state">
@@ -69,44 +72,101 @@
               <mat-option [value]="state">{{ state }}</mat-option>
             }
           </mat-select>
+          <mat-error *ngIf="hasControlError('state', 'required')">State is required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>City / Cities Covered</mat-label>
+          <mat-select formControlName="citiesCovered" multiple [disabled]="isCitySelectionDisabled()">
+            @if (isCitySelectionDisabled()) {
+              <mat-option disabled>Select a state first</mat-option>
+            } @else {
+              @for (city of cityOptions; track city) {
+                <mat-option [value]="city">{{ city }}</mat-option>
+              }
+            }
+          </mat-select>
+          <mat-error *ngIf="hasControlError('citiesCovered', 'required')">
+            At least one city covered is required.
+          </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>ZIP Codes Covered</mat-label>
-          <input matInput formControlName="zipCodes" placeholder="76010, 76011" />
+          <mat-label>Zip Codes Covered</mat-label>
+          <input matInput formControlName="zipCodes" placeholder="20001, 20002" />
+          <mat-error *ngIf="hasControlError('zipCodes', 'required')">Zip codes are required.</mat-error>
         </mat-form-field>
+      </div>
 
+      <h2>Operations</h2>
+
+      <div class="form-grid">
         <mat-form-field appearance="outline">
           <mat-label>Years of Experience</mat-label>
           <input matInput type="number" formControlName="yearsOfExperience" min="0" />
+          <mat-error *ngIf="hasControlError('yearsOfExperience', 'required')">
+            Years of experience is required.
+          </mat-error>
+          <mat-error *ngIf="hasControlError('yearsOfExperience', 'min')">
+            Years of experience must be 0 or higher.
+          </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Working Hours</mat-label>
           <input matInput formControlName="workingHours" placeholder="24/7 or 8:00 AM - 6:00 PM" />
+          <mat-error *ngIf="hasControlError('workingHours', 'required')">Working hours are required.</mat-error>
         </mat-form-field>
 
         <div class="checkbox-wrap">
           <mat-checkbox formControlName="emergencyService">Emergency Availability</mat-checkbox>
         </div>
+      </div>
+
+      <h2>Compliance Documents (Optional)</h2>
+
+      <p class="file-hint">Allowed file types: PDF, JPG, JPEG, PNG</p>
+
+      <div class="form-grid">
+        <div class="file-field span-2">
+          <label for="license-upload">License Document</label>
+          <input id="license-upload" type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event, 'license')" />
+          <small *ngIf="selectedLicenseFileName">Selected: {{ selectedLicenseFileName }}</small>
+        </div>
 
         <div class="file-field span-2">
-          <label for="license-upload">Optional License/Insurance Upload</label>
-          <input id="license-upload" type="file" (change)="onFileSelected($event)" />
-          <small *ngIf="applicationForm.controls.licenseFileName.value">
-            Selected: {{ applicationForm.controls.licenseFileName.value }}
-          </small>
+          <label for="insurance-upload">Insurance / COI Document</label>
+          <input
+            id="insurance-upload"
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            (change)="onFileSelected($event, 'insurance')"
+          />
+          <small *ngIf="selectedInsuranceFileName">Selected: {{ selectedInsuranceFileName }}</small>
+        </div>
+
+        <div class="file-field span-2">
+          <label for="w9-upload">W-9 Document</label>
+          <input id="w9-upload" type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event, 'w9')" />
+          <small *ngIf="selectedW9FileName">Selected: {{ selectedW9FileName }}</small>
         </div>
 
         <mat-form-field appearance="outline" class="span-2">
-          <mat-label>Message / Notes</mat-label>
+          <mat-label>Message / Additional Notes</mat-label>
           <textarea matInput formControlName="message" rows="4"></textarea>
         </mat-form-field>
       </div>
 
-      <button mat-flat-button color="primary" type="submit">Submit Application</button>
+      <p class="inline-error" *ngIf="submissionError">{{ submissionError }}</p>
 
-      <p class="success" *ngIf="submitted">Application Submitted! Thank you for applying to join our network.</p>
+      <button mat-flat-button color="primary" type="submit" [disabled]="isSubmitting">
+        @if (isSubmitting) {
+          <mat-spinner diameter="18" />
+          <span>Submitting...</span>
+        } @else {
+          <span>Submit Application</span>
+        }
+      </button>
     </form>
   </mat-card>
 </section>
