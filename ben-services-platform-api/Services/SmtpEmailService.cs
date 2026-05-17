@@ -8,13 +8,9 @@ public class SmtpEmailService(
     SmtpSettings smtpSettings,
     ILogger<SmtpEmailService> logger) : IEmailService
 {
-<<<<<<< HEAD
     private const int SmtpTimeoutMilliseconds = 15000;
 
-    public async Task SendAdminCredentialsAsync(
-=======
     public Task SendAdminCredentialsAsync(
->>>>>>> dev
         string recipientName,
         string recipientEmail,
         string username,
