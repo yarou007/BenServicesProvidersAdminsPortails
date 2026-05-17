@@ -16,6 +16,8 @@ import { SERVICE_OPTIONS } from '../../../shared/services/mock-data';
 import { ApplicationService } from '../../../shared/services/application.service';
 
 const ALLOWED_FILE_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png']);
+const MAX_DOCUMENT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MESSAGE_MAX_LENGTH = 2000;
 
 @Component({
   selector: 'app-provider-application-form-page',
@@ -46,22 +48,24 @@ export class ProviderApplicationFormPageComponent {
 
   protected readonly serviceOptions = SERVICE_OPTIONS;
   protected readonly stateOptions = SERVICE_AREA_STATES;
+  protected readonly messageMaxLength = MESSAGE_MAX_LENGTH;
   protected cityOptions: string[] = [];
 
   protected readonly applicationForm = this.formBuilder.nonNullable.group({
     fullName: ['', [Validators.required]],
     businessName: ['', [Validators.required]],
+    streetAddress: ['', [Validators.required]],
     phone: ['', [Validators.required, Validators.pattern(/^\(?\d{3}\)?[-\s]?\d{3}[-\s]?\d{4}$/)]],
     email: ['', [Validators.required, Validators.email]],
     serviceType: ['Locksmith', [Validators.required]],
     servicesOffered: [[] as string[], [Validators.required]],
-    state: ['', [Validators.required]],
+    states: [[] as ServiceAreaState[], [Validators.required]],
     citiesCovered: [[] as string[], [Validators.required]],
     zipCodes: ['', [Validators.required]],
     yearsOfExperience: [1, [Validators.required, Validators.min(0)]],
     emergencyService: [false],
     workingHours: ['', [Validators.required]],
-    message: ['']
+    message: ['', [Validators.maxLength(MESSAGE_MAX_LENGTH)]]
   });
 
   protected isSubmitting = false;
@@ -70,18 +74,24 @@ export class ProviderApplicationFormPageComponent {
   protected selectedLicenseFileName = '';
   protected selectedInsuranceFileName = '';
   protected selectedW9FileName = '';
+  protected licenseFileError = '';
+  protected insuranceFileError = '';
+  protected w9FileError = '';
 
   private selectedLicenseFile: File | null = null;
   private selectedInsuranceFile: File | null = null;
   private selectedW9File: File | null = null;
 
   constructor() {
-    this.applicationForm.controls.state.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((state) => {
-      const normalizedState = state as ServiceAreaState | '';
+    this.applicationForm.controls.states.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((states) => {
+      const selectedStates = (states ?? []).filter(Boolean) as ServiceAreaState[];
+      this.syncCityOptionsForStates(selectedStates);
+    });
 
-      this.cityOptions = normalizedState ? [...(SERVICE_AREAS_BY_STATE[normalizedState] ?? [])] : [];
-      this.applicationForm.controls.citiesCovered.setValue([]);
-      this.applicationForm.controls.citiesCovered.markAsUntouched();
+    this.applicationForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.submissionError && !this.isSubmitting) {
+        this.submissionError = '';
+      }
     });
   }
 
@@ -94,26 +104,38 @@ export class ProviderApplicationFormPageComponent {
       return;
     }
 
-    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
-    if (!ALLOWED_FILE_EXTENSIONS.has(extension)) {
-      this.submissionError = 'Only PDF, JPG, JPEG, and PNG files are allowed.';
+    const validationError = this.validateSelectedDocument(file);
+    if (validationError) {
+      this.setFileError(documentType, validationError);
       this.assignFile(documentType, null);
       input.value = '';
       return;
     }
 
+    this.setFileError(documentType, '');
     this.submissionError = '';
     this.assignFile(documentType, file);
   }
 
   protected submitApplication(): void {
+    this.submissionError = '';
+
     if (this.applicationForm.invalid) {
       this.applicationForm.markAllAsTouched();
+      this.focusFirstInvalidControl();
+      this.submissionError = 'Please review the highlighted fields before submitting your application.';
+      this.isSubmitting = false;
+      return;
+    }
+
+    if (!this.validateRequiredComplianceDocuments()) {
+      this.focusFirstMissingDocumentInput();
+      this.isSubmitting = false;
+      this.submissionError = 'Please upload all required compliance documents before submitting your application.';
       return;
     }
 
     this.isSubmitting = true;
-    this.submissionError = '';
 
     const formValue = this.applicationForm.getRawValue();
     const zipCodes = formValue.zipCodes
@@ -125,11 +147,12 @@ export class ProviderApplicationFormPageComponent {
       email: formValue.email,
       fullName: formValue.fullName,
       businessName: formValue.businessName,
+      streetAddress: formValue.streetAddress,
       phone: formValue.phone,
       serviceType: formValue.serviceType as 'Locksmith' | 'Glass' | 'Both',
       servicesOffered: formValue.servicesOffered,
+      states: formValue.states,
       citiesCovered: formValue.citiesCovered,
-      state: formValue.state,
       zipCodes,
       yearsOfExperience: Number(formValue.yearsOfExperience),
       emergencyService: formValue.emergencyService,
@@ -152,10 +175,7 @@ export class ProviderApplicationFormPageComponent {
       error: (error) => {
         this.isSubmitting = false;
 
-        const message =
-          error?.error?.message ||
-          error?.error?.title ||
-          'Unable to submit application right now. Please retry.';
+        const message = this.buildSubmissionErrorMessage(error);
 
         this.submissionError = message;
         this.snackBar.open(message, 'Close', {
@@ -171,23 +191,140 @@ export class ProviderApplicationFormPageComponent {
   }
 
   protected isCitySelectionDisabled(): boolean {
-    return !this.applicationForm.controls.state.value;
+    return this.applicationForm.controls.states.value.length === 0;
+  }
+
+  protected get messageCharacterCount(): number {
+    return this.applicationForm.controls.message.value.length;
   }
 
   private assignFile(documentType: 'license' | 'insurance' | 'w9', file: File | null): void {
     if (documentType === 'license') {
       this.selectedLicenseFile = file;
       this.selectedLicenseFileName = file?.name ?? '';
+      if (file) {
+        this.licenseFileError = '';
+      }
       return;
     }
 
     if (documentType === 'insurance') {
       this.selectedInsuranceFile = file;
       this.selectedInsuranceFileName = file?.name ?? '';
+      if (file) {
+        this.insuranceFileError = '';
+      }
       return;
     }
 
     this.selectedW9File = file;
     this.selectedW9FileName = file?.name ?? '';
+    if (file) {
+      this.w9FileError = '';
+    }
+  }
+
+  private syncCityOptionsForStates(states: ServiceAreaState[]): void {
+    const mergedCities = states.flatMap((state) => SERVICE_AREAS_BY_STATE[state] ?? []);
+    this.cityOptions = Array.from(new Set(mergedCities));
+
+    const currentSelectedCities = this.applicationForm.controls.citiesCovered.value;
+    const nextSelectedCities = currentSelectedCities.filter((city) => this.cityOptions.includes(city));
+
+    if (nextSelectedCities.length !== currentSelectedCities.length) {
+      this.applicationForm.controls.citiesCovered.setValue(nextSelectedCities);
+      this.applicationForm.controls.citiesCovered.markAsTouched();
+    }
+  }
+
+  private validateSelectedDocument(file: File): string | null {
+    if (file.size > MAX_DOCUMENT_FILE_SIZE_BYTES) {
+      return 'File size must be less than 10 MB.';
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (!ALLOWED_FILE_EXTENSIONS.has(extension)) {
+      return 'Only PDF, JPG, JPEG, and PNG files are allowed.';
+    }
+
+    return null;
+  }
+
+  private setFileError(documentType: 'license' | 'insurance' | 'w9', error: string): void {
+    if (documentType === 'license') {
+      this.licenseFileError = error;
+      return;
+    }
+
+    if (documentType === 'insurance') {
+      this.insuranceFileError = error;
+      return;
+    }
+
+    this.w9FileError = error;
+  }
+
+  private validateRequiredComplianceDocuments(): boolean {
+    if (!this.selectedLicenseFile) {
+      this.licenseFileError = 'License document is required.';
+    }
+
+    if (!this.selectedInsuranceFile) {
+      this.insuranceFileError = 'Insurance / COI document is required.';
+    }
+
+    if (!this.selectedW9File) {
+      this.w9FileError = 'W-9 document is required.';
+    }
+
+    return !this.licenseFileError && !this.insuranceFileError && !this.w9FileError;
+  }
+
+  private focusFirstInvalidControl(): void {
+    queueMicrotask(() => {
+      const firstInvalidControl = document.querySelector<HTMLElement>('[formcontrolname].ng-invalid');
+      if (!firstInvalidControl) {
+        return;
+      }
+
+      firstInvalidControl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalidControl.focus();
+    });
+  }
+
+  private focusFirstMissingDocumentInput(): void {
+    queueMicrotask(() => {
+      const nextTargetId = !this.selectedLicenseFile
+        ? 'license-upload'
+        : !this.selectedInsuranceFile
+          ? 'insurance-upload'
+          : !this.selectedW9File
+            ? 'w9-upload'
+            : null;
+
+      if (!nextTargetId) {
+        return;
+      }
+
+      const element = document.getElementById(nextTargetId);
+      if (!element) {
+        return;
+      }
+
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      (element as HTMLElement).focus();
+    });
+  }
+
+  private buildSubmissionErrorMessage(error: unknown): string {
+    const rawError = (error as { error?: { message?: string; title?: string; errors?: Record<string, string> } })?.error;
+    if (rawError?.errors) {
+      const errorMessages = Object.values(rawError.errors).filter((value) => !!value?.trim());
+      if (errorMessages.length > 0) {
+        return errorMessages.join(' ');
+      }
+    }
+
+    return rawError?.message || rawError?.title || 'Unable to submit application right now. Please retry.';
   }
 }

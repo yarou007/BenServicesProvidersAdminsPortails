@@ -66,11 +66,13 @@ export class ApplicationService {
     formData.append('email', payload.email);
     formData.append('fullName', payload.fullName);
     formData.append('businessName', payload.businessName);
+    formData.append('streetAddress', payload.streetAddress);
     formData.append('phone', payload.phone);
     formData.append('serviceType', payload.serviceType);
     formData.append('servicesOfferedJson', JSON.stringify(payload.servicesOffered));
+    formData.append('statesJson', JSON.stringify(payload.states));
     formData.append('citiesCoveredJson', JSON.stringify(payload.citiesCovered));
-    formData.append('state', payload.state);
+    formData.append('state', payload.states[0] ?? '');
     formData.append('zipCodesJson', JSON.stringify(payload.zipCodes));
     formData.append('yearsOfExperience', payload.yearsOfExperience.toString());
     formData.append('emergencyService', payload.emergencyService ? 'true' : 'false');

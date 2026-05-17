@@ -7,10 +7,12 @@ public class ProviderDto
     public int Id { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
+    public string StreetAddress { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string ServiceType { get; set; } = "Locksmith";
     public string[] ServicesOffered { get; set; } = [];
+    public string[] States { get; set; } = [];
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string[] ZipCodes { get; set; } = [];
@@ -39,10 +41,12 @@ public interface IProviderUpsertPayload
 {
     public string FullName { get; set; }
     public string BusinessName { get; set; }
+    public string? StreetAddress { get; set; }
     public string Phone { get; set; }
     public string Email { get; set; }
     public string ServiceType { get; set; }
     public string[] ServicesOffered { get; set; }
+    public string[]? States { get; set; }
     public string City { get; set; }
     public string State { get; set; }
     public string[] ZipCodes { get; set; }
@@ -63,10 +67,12 @@ public class ProviderUpsertRequest : IProviderUpsertPayload
 {
     public string FullName { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
+    public string? StreetAddress { get; set; }
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string ServiceType { get; set; } = "Locksmith";
     public string[] ServicesOffered { get; set; } = [];
+    public string[]? States { get; set; }
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string[] ZipCodes { get; set; } = [];
@@ -87,10 +93,12 @@ public class ProviderCreateRequest : IProviderUpsertPayload
 {
     public string FullName { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
+    public string? StreetAddress { get; set; }
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string ServiceType { get; set; } = "Locksmith";
     public string[] ServicesOffered { get; set; } = [];
+    public string[]? States { get; set; }
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string[] ZipCodes { get; set; } = [];

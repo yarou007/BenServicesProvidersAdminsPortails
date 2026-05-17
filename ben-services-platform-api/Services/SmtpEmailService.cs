@@ -149,7 +149,14 @@ After your first login, you must change your temporary password.
         string body,
         CancellationToken cancellationToken)
     {
-        smtpSettings.ValidateForCredentialEmails();
+        if (!smtpSettings.IsConfiguredForCredentialEmails())
+        {
+            logger.LogWarning(
+                "SMTP settings are incomplete. Skipping email send. Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_EMAIL. RecipientEmail={RecipientEmail}, Subject={Subject}",
+                recipientEmail,
+                subject);
+            return;
+        }
 
         using var mailMessage = new MailMessage
         {
@@ -170,8 +177,9 @@ After your first login, you must change your temporary password.
         };
 
         logger.LogInformation(
-            "Starting SMTP send for admin credentials email to RecipientEmail={RecipientEmail}",
-            recipientEmail);
+            "Starting SMTP send. RecipientEmail={RecipientEmail}, Subject={Subject}",
+            recipientEmail,
+            subject);
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(SmtpTimeoutMilliseconds);
@@ -181,15 +189,17 @@ After your first login, you must change your temporary password.
             timeoutCts.Token.ThrowIfCancellationRequested();
             await smtpClient.SendMailAsync(mailMessage, timeoutCts.Token);
             logger.LogInformation(
-                "Completed SMTP send for admin credentials email to RecipientEmail={RecipientEmail}",
-                recipientEmail);
+                "Completed SMTP send. RecipientEmail={RecipientEmail}, Subject={Subject}",
+                recipientEmail,
+                subject);
         }
         catch (Exception exception)
         {
             logger.LogWarning(
                 exception,
-                "SMTP send failed for admin credentials email to RecipientEmail={RecipientEmail}",
-                recipientEmail);
+                "SMTP send failed. RecipientEmail={RecipientEmail}, Subject={Subject}",
+                recipientEmail,
+                subject);
             throw;
         }
     }

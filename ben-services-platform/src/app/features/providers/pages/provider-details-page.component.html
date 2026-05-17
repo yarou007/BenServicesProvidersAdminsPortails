@@ -37,6 +37,7 @@
       <mat-card-content>
         <p><strong>Full Name:</strong> {{ provider.fullName }}</p>
         <p><strong>Business Name:</strong> {{ provider.businessName }}</p>
+        <p><strong>Street Address:</strong> {{ provider.streetAddress || 'N/A' }}</p>
         <p><strong>Phone:</strong> {{ provider.phone }}</p>
         <p><strong>Email:</strong> {{ provider.email }}</p>
       </mat-card-content>
@@ -62,6 +63,7 @@
       <mat-card-content>
         <p><strong>City:</strong> {{ provider.city }}</p>
         <p><strong>State:</strong> {{ provider.state }}</p>
+        <p><strong>States Covered:</strong> {{ (provider.states ?? []).length ? (provider.states ?? []).join(', ') : (provider.state || 'N/A') }}</p>
         <p><strong>ZIP Codes:</strong> {{ provider.zipCodes.join(', ') }}</p>
         <p><strong>Region:</strong> {{ provider.region }}</p>
         <div class="map-placeholder" aria-label="Map placeholder">

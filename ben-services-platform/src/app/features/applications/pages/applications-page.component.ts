@@ -21,10 +21,12 @@ import { ApplicationService } from '../../../shared/services/application.service
     <mat-dialog-content class="dialog-content">
       <p><strong>Applicant:</strong> {{ data.fullName }}</p>
       <p><strong>Company:</strong> {{ data.businessName }}</p>
+      <p><strong>Street Address:</strong> {{ data.streetAddress || 'N/A' }}</p>
       <p><strong>Email:</strong> {{ data.email }}</p>
       <p><strong>Phone:</strong> {{ data.phone }}</p>
       <p><strong>Service Type:</strong> {{ data.serviceType }}</p>
       <p><strong>Services:</strong> {{ data.servicesOffered.join(', ') }}</p>
+      <p><strong>States Covered:</strong> {{ (data.states ?? []).length ? (data.states ?? []).join(', ') : (data.state || 'N/A') }}</p>
       <p><strong>Cities Covered:</strong> {{ data.citiesCovered.join(', ') }}</p>
       <p><strong>State:</strong> {{ data.state }}</p>
       <p><strong>ZIP Codes:</strong> {{ data.zipCodes.join(', ') }}</p>

@@ -7,15 +7,23 @@ public static class EntityMappers
 {
     public static ProviderDto ToDto(this ProviderEntity entity)
     {
+        var states = JsonArrayMapper.Deserialize(entity.StatesJson);
+        if (states.Length == 0 && !string.IsNullOrWhiteSpace(entity.State))
+        {
+            states = [entity.State];
+        }
+
         return new ProviderDto
         {
             Id = entity.Id,
             FullName = entity.FullName,
             BusinessName = entity.BusinessName,
+            StreetAddress = entity.StreetAddress ?? string.Empty,
             Phone = entity.Phone,
             Email = entity.Email,
             ServiceType = entity.ServiceType,
             ServicesOffered = JsonArrayMapper.Deserialize(entity.ServicesOfferedJson),
+            States = states,
             City = entity.City,
             State = entity.State,
             ZipCodes = JsonArrayMapper.Deserialize(entity.ZipCodesJson),
@@ -41,14 +49,28 @@ public static class EntityMappers
 
     public static void ApplyUpdate(this ProviderEntity entity, IProviderUpsertPayload request)
     {
+        var states = request.States?
+            .Select(item => item.Trim())
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+            ?? [];
+
+        if (states.Length == 0 && !string.IsNullOrWhiteSpace(request.State))
+        {
+            states = [request.State.Trim()];
+        }
+
         entity.FullName = request.FullName.Trim();
         entity.BusinessName = request.BusinessName.Trim();
+        entity.StreetAddress = string.IsNullOrWhiteSpace(request.StreetAddress) ? null : request.StreetAddress.Trim();
         entity.Phone = request.Phone.Trim();
         entity.Email = request.Email.Trim();
         entity.ServiceType = request.ServiceType;
         entity.ServicesOfferedJson = JsonArrayMapper.Serialize(request.ServicesOffered);
         entity.City = request.City.Trim();
-        entity.State = request.State.Trim();
+        entity.State = states.FirstOrDefault() ?? request.State.Trim();
+        entity.StatesJson = JsonArrayMapper.Serialize(states);
         entity.ZipCodesJson = JsonArrayMapper.Serialize(request.ZipCodes);
         entity.Region = request.Region.Trim();
         entity.EmergencyService = request.EmergencyService;
@@ -66,16 +88,24 @@ public static class EntityMappers
 
     public static ProviderApplicationDto ToDto(this ProviderApplicationEntity entity)
     {
+        var states = JsonArrayMapper.Deserialize(entity.StatesJson);
+        if (states.Length == 0 && !string.IsNullOrWhiteSpace(entity.State))
+        {
+            states = [entity.State];
+        }
+
         return new ProviderApplicationDto
         {
             Id = entity.Id,
             UserId = entity.UserId,
             FullName = entity.FullName,
             BusinessName = entity.BusinessName,
+            StreetAddress = entity.StreetAddress ?? string.Empty,
             Phone = entity.Phone,
             Email = entity.Email,
             ServiceType = entity.ServiceType,
             ServicesOffered = JsonArrayMapper.Deserialize(entity.ServicesOfferedJson),
+            States = states,
             CitiesCovered = JsonArrayMapper.Deserialize(entity.CitiesCoveredJson),
             City = entity.City,
             State = entity.State,
@@ -106,18 +136,25 @@ public static class EntityMappers
     public static ProviderApplicationEntity ToEntity(this ProviderApplicationCreateRequest request)
     {
         var now = DateTime.UtcNow;
+        var states = request.States
+            .Select(item => item.Trim())
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
         return new ProviderApplicationEntity
         {
             FullName = request.FullName.Trim(),
             BusinessName = request.BusinessName.Trim(),
+            StreetAddress = string.IsNullOrWhiteSpace(request.StreetAddress) ? null : request.StreetAddress.Trim(),
             Phone = request.Phone.Trim(),
             Email = request.Email.Trim(),
             ServiceType = request.ServiceType,
             ServicesOfferedJson = JsonArrayMapper.Serialize(request.ServicesOffered),
+            StatesJson = JsonArrayMapper.Serialize(states),
             CitiesCoveredJson = JsonArrayMapper.Serialize(request.CitiesCovered),
             City = request.City.Trim(),
-            State = request.State.Trim(),
+            State = states.FirstOrDefault() ?? request.State.Trim(),
             ZipCodesJson = JsonArrayMapper.Serialize(request.ZipCodes),
             YearsOfExperience = request.YearsOfExperience,
             EmergencyService = request.EmergencyService,

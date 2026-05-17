@@ -64,10 +64,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(item => item.Id).ValueGeneratedOnAdd();
             entity.Property(item => item.FullName).HasMaxLength(120).IsRequired();
             entity.Property(item => item.BusinessName).HasMaxLength(160).IsRequired();
+            entity.Property(item => item.StreetAddress).HasMaxLength(255);
             entity.Property(item => item.Phone).HasMaxLength(32).IsRequired();
             entity.Property(item => item.Email).HasMaxLength(200).IsRequired();
             entity.Property(item => item.ServiceType).HasMaxLength(24).IsRequired();
             entity.Property(item => item.ServicesOfferedJson).HasColumnType("longtext").IsRequired();
+            entity.Property(item => item.StatesJson).HasColumnType("longtext");
             entity.Property(item => item.City).HasMaxLength(120).IsRequired();
             entity.Property(item => item.State).HasMaxLength(16).IsRequired();
             entity.Property(item => item.ZipCodesJson).HasColumnType("longtext").IsRequired();
@@ -100,10 +102,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(item => item.Id).ValueGeneratedOnAdd();
             entity.Property(item => item.FullName).HasMaxLength(120).IsRequired();
             entity.Property(item => item.BusinessName).HasMaxLength(160).IsRequired();
+            entity.Property(item => item.StreetAddress).HasMaxLength(255);
             entity.Property(item => item.Phone).HasMaxLength(32).IsRequired();
             entity.Property(item => item.Email).HasMaxLength(200).IsRequired();
             entity.Property(item => item.ServiceType).HasMaxLength(24).IsRequired();
             entity.Property(item => item.ServicesOfferedJson).HasColumnType("longtext").IsRequired();
+            entity.Property(item => item.StatesJson).HasColumnType("longtext");
             entity.Property(item => item.CitiesCoveredJson).HasColumnType("longtext").IsRequired();
             entity.Property(item => item.City).HasMaxLength(120).IsRequired();
             entity.Property(item => item.State).HasMaxLength(16).IsRequired();
