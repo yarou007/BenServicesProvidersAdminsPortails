@@ -395,7 +395,7 @@ export class ProviderFormPageComponent implements OnInit {
 
   private getCoveredStatesForEdit(provider: Provider): string[] {
     const coveredFromComments = this.extractListFromComments(provider.adminComments ?? '', STATES_MARKER);
-    const covered = [provider.state, ...coveredFromComments].map((state) => state.trim()).filter(Boolean);
+    const covered = [...(provider.states ?? []), provider.state, ...coveredFromComments].map((state) => state.trim()).filter(Boolean);
     return Array.from(new Set(covered));
   }
 
@@ -538,6 +538,7 @@ export class ProviderFormPageComponent implements OnInit {
       email: formValue.email,
       serviceType: formValue.serviceType,
       servicesOffered: formValue.servicesOffered,
+      states: formValue.statesCovered,
       city: primaryCity,
       state: primaryState,
       zipCodes,

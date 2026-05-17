@@ -4,8 +4,12 @@ using BenServicesPlatform.Api.Settings;
 
 namespace BenServicesPlatform.Api.Services;
 
-public class SmtpEmailService(SmtpSettings smtpSettings) : IEmailService
+public class SmtpEmailService(
+    SmtpSettings smtpSettings,
+    ILogger<SmtpEmailService> logger) : IEmailService
 {
+    private const int SmtpTimeoutMilliseconds = 15000;
+
     public Task SendAdminCredentialsAsync(
         string recipientName,
         string recipientEmail,
@@ -145,7 +149,14 @@ After your first login, you must change your temporary password.
         string body,
         CancellationToken cancellationToken)
     {
-        smtpSettings.ValidateForCredentialEmails();
+        if (!smtpSettings.IsConfiguredForCredentialEmails())
+        {
+            logger.LogWarning(
+                "SMTP settings are incomplete. Skipping email send. Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_EMAIL. RecipientEmail={RecipientEmail}, Subject={Subject}",
+                recipientEmail,
+                subject);
+            return;
+        }
 
         using var mailMessage = new MailMessage
         {
@@ -161,10 +172,35 @@ After your first login, you must change your temporary password.
         {
             EnableSsl = true,
             UseDefaultCredentials = false,
-            Credentials = new NetworkCredential(smtpSettings.User, smtpSettings.Password)
+            Credentials = new NetworkCredential(smtpSettings.User, smtpSettings.Password),
+            Timeout = SmtpTimeoutMilliseconds
         };
 
-        cancellationToken.ThrowIfCancellationRequested();
-        await smtpClient.SendMailAsync(mailMessage, cancellationToken);
+        logger.LogInformation(
+            "Starting SMTP send. RecipientEmail={RecipientEmail}, Subject={Subject}",
+            recipientEmail,
+            subject);
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(SmtpTimeoutMilliseconds);
+
+        try
+        {
+            timeoutCts.Token.ThrowIfCancellationRequested();
+            await smtpClient.SendMailAsync(mailMessage, timeoutCts.Token);
+            logger.LogInformation(
+                "Completed SMTP send. RecipientEmail={RecipientEmail}, Subject={Subject}",
+                recipientEmail,
+                subject);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "SMTP send failed. RecipientEmail={RecipientEmail}, Subject={Subject}",
+                recipientEmail,
+                subject);
+            throw;
+        }
     }
 }

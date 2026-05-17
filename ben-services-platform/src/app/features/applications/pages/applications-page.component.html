@@ -124,6 +124,8 @@
                 <p><strong>Email:</strong> {{ application.email }}</p>
                 <p><strong>Service:</strong> {{ application.serviceType }}</p>
                 <p><strong>Location:</strong> {{ application.city }}, {{ application.state }}</p>
+                <p><strong>States:</strong> {{ (application.states ?? []).length ? (application.states ?? []).join(', ') : (application.state || 'N/A') }}</p>
+                <p><strong>Street:</strong> {{ application.streetAddress || 'N/A' }}</p>
                 <p><strong>Submitted:</strong> {{ application.submittedAt | date: 'mediumDate' }}</p>
                 <p><strong>Docs:</strong> {{ hasAnyDocument(application) ? 'Uploaded' : 'Not uploaded' }}</p>
                 <p *ngIf="application.convertedProviderId"><strong>Provider ID:</strong> {{ application.convertedProviderId }}</p>

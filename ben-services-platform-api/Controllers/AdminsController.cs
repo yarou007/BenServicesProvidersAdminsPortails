@@ -50,7 +50,7 @@ public class AdminsController(
     }
 
     [HttpPost]
-    public async Task<ActionResult<AdminResponseDto>> CreateAsync([FromBody] AdminCreateRequestDto request)
+    public async Task<ActionResult<AdminCreateResponseDto>> CreateAsync([FromBody] AdminCreateRequestDto request)
     {
         var connectedAdmin = await GetConnectedAdminAsync();
         if (connectedAdmin is null)
@@ -63,14 +63,22 @@ public class AdminsController(
             return BadRequest(new { message = "Full name is required." });
         }
 
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return BadRequest(new { message = "Email is required." });
+        }
+
         if (!MailAddress.TryCreate(request.Email.Trim(), out _))
         {
             return BadRequest(new { message = "Email format is invalid." });
         }
 
-        var role = string.IsNullOrWhiteSpace(request.Role)
-            ? AdminRole.Admin
-            : request.Role.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(request.Role))
+        {
+            return BadRequest(new { message = "Role is required." });
+        }
+
+        var role = request.Role.Trim().ToUpperInvariant();
 
         if (!AdminRole.IsValid(role))
         {
@@ -82,7 +90,7 @@ public class AdminsController(
         var emailExists = await dbContext.Admins.AnyAsync(item => item.Email == normalizedEmail);
         if (emailExists)
         {
-            return Conflict(new { message = "Email is already in use." });
+            return BadRequest(new { message = "Email is already in use." });
         }
 
         var usernameBase = CredentialGenerator.SanitizeUsernameBase(normalizedEmail);
@@ -102,33 +110,81 @@ public class AdminsController(
 
         admin.PasswordHash = passwordHasher.HashPassword(admin, temporaryPassword);
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        dbContext.Admins.Add(admin);
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (TryMapDuplicateAdminConstraint(exception, out var duplicateMessage))
+        {
+            logger.LogWarning(
+                exception,
+                "Rejected duplicate admin creation for Email={Email}, Username={Username}",
+                admin.Email,
+                admin.Username);
+            return BadRequest(new { message = duplicateMessage });
+        }
+        catch (DbUpdateException exception)
+        {
+            logger.LogError(exception, "Failed to create admin account for Email={Email}", admin.Email);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to create admin account."
+            });
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Failed to create admin account for Email={Email}", admin.Email);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to create admin account."
+            });
+        }
+
+        if (dbContext.Database.CurrentTransaction is { } currentTransaction)
+        {
+            try
+            {
+                await currentTransaction.CommitAsync();
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Failed to commit admin creation transaction for Email={Email}", admin.Email);
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Failed to create admin account."
+                });
+            }
+        }
+
+        var response = new AdminCreateResponseDto
+        {
+            Message = "Admin account created and credentials email sent.",
+            EmailSent = true,
+            Admin = admin.ToDto()
+        };
 
         try
         {
-            dbContext.Admins.Add(admin);
-            await dbContext.SaveChangesAsync();
-
             await emailService.SendAdminCredentialsAsync(
                 admin.FullName,
                 admin.Email,
                 admin.Username,
                 temporaryPassword);
-
-            await transaction.CommitAsync();
         }
         catch (Exception exception)
         {
-            await transaction.RollbackAsync();
-            logger.LogWarning(exception, "Failed to create admin account for Email={Email}", admin.Email);
+            logger.LogWarning(
+                exception,
+                "Admin account created but credentials email failed. AdminId={AdminId}, Email={Email}",
+                admin.Id,
+                admin.Email);
 
-            return StatusCode(StatusCodes.Status502BadGateway, new
-            {
-                message = "Failed to send admin credentials email. Admin account was not created."
-            });
+            response.Message = "Admin account created, but credentials email could not be sent.";
+            response.EmailSent = false;
         }
 
-        return CreatedAtRoute(GetAdminByIdRouteName, new { id = admin.Id }, admin.ToDto());
+        return CreatedAtRoute(GetAdminByIdRouteName, new { id = admin.Id }, response);
     }
 
     [HttpPatch("{id:int}/status")]
@@ -180,5 +236,25 @@ public class AdminsController(
         }
 
         return await dbContext.Admins.FirstOrDefaultAsync(item => item.Id == adminId && item.IsActive);
+    }
+
+    private static bool TryMapDuplicateAdminConstraint(DbUpdateException exception, out string message)
+    {
+        var error = exception.InnerException?.Message ?? exception.Message;
+
+        if (error.Contains("IX_admins_Email", StringComparison.OrdinalIgnoreCase))
+        {
+            message = "Email is already in use.";
+            return true;
+        }
+
+        if (error.Contains("IX_admins_Username", StringComparison.OrdinalIgnoreCase))
+        {
+            message = "Username is already in use.";
+            return true;
+        }
+
+        message = string.Empty;
+        return false;
     }
 }

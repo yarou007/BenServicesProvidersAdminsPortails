@@ -8,10 +8,12 @@ public class ProviderApplicationDto
     public int? UserId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
+    public string StreetAddress { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string ServiceType { get; set; } = "Locksmith";
     public string[] ServicesOffered { get; set; } = [];
+    public string[] States { get; set; } = [];
     public string[] CitiesCovered { get; set; } = [];
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
@@ -42,10 +44,12 @@ public class ProviderApplicationCreateRequest
 {
     public string FullName { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
+    public string StreetAddress { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string ServiceType { get; set; } = "Locksmith";
     public string[] ServicesOffered { get; set; } = [];
+    public string[] States { get; set; } = [];
     public string[] CitiesCovered { get; set; } = [];
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
@@ -61,12 +65,14 @@ public class ProviderApplicationApplyRequest
 {
     public string FullName { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
+    public string StreetAddress { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string ServiceType { get; set; } = "Locksmith";
     public string ServicesOfferedJson { get; set; } = "[]";
+    public string StatesJson { get; set; } = "[]";
     public string CitiesCoveredJson { get; set; } = "[]";
-    public string State { get; set; } = string.Empty;
+    public string? State { get; set; }
     public string ZipCodesJson { get; set; } = "[]";
     public int YearsOfExperience { get; set; }
     public bool EmergencyService { get; set; }

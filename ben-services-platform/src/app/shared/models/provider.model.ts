@@ -8,10 +8,12 @@ export interface Provider {
   id: number;
   fullName: string;
   businessName: string;
+  streetAddress?: string;
   phone: string;
   email: string;
   serviceType: ServiceType;
   servicesOffered: string[];
+  states?: string[];
   city: string;
   state: string;
   zipCodes: string[];

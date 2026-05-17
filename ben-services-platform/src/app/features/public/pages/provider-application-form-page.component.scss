@@ -41,13 +41,39 @@
 
 form {
   display: grid;
-  gap: 1.1rem;
+  gap: 1.05rem;
+}
+
+.submission-guidance {
+  border: 1px solid #c9d9ea;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f7fcff, #f1f8ff);
+  padding: 0.85rem 1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.submission-guidance p {
+  margin: 0;
+  color: #35506f;
+  font-size: 0.92rem;
+}
+
+.guidance-title {
+  font-weight: 700;
+  color: #1f3650;
 }
 
 h2 {
   margin: 0.2rem 0 0;
   font-size: 1.05rem;
   color: #1a2a3f;
+}
+
+.section-hint {
+  margin: -0.45rem 0 0.2rem;
+  color: #53657a;
+  font-size: 0.85rem;
 }
 
 .form-grid {
@@ -73,6 +99,12 @@ h2 {
   display: grid;
   gap: 0.35rem;
   background: #f6fbff;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.file-field:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .file-hint {
@@ -94,10 +126,26 @@ h2 {
   color: #3c526c;
 }
 
+.file-field .field-error {
+  color: #b42318;
+  font-weight: 600;
+}
+
 .inline-error {
   margin: 0;
   color: #b42318;
   font-weight: 600;
+}
+
+.submit-wrap {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.submit-helper {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #495c72;
 }
 
 button[type='submit'] {
@@ -106,6 +154,8 @@ button[type='submit'] {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  border-radius: 999px;
+  padding-inline: 1.1rem;
 }
 
 @media (max-width: 760px) {

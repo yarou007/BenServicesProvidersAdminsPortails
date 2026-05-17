@@ -10,6 +10,12 @@ export interface CreateAdminRequest {
   role: AdminRole;
 }
 
+export interface CreateAdminResponse {
+  message: string;
+  emailSent: boolean;
+  admin: AdminUser;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -24,8 +30,8 @@ export class AdminService {
     return this.httpClient.get<AdminUser>(`${API_BASE_URL}/admins/${id}`);
   }
 
-  createAdmin(request: CreateAdminRequest): Observable<AdminUser> {
-    return this.httpClient.post<AdminUser>(`${API_BASE_URL}/admins`, request);
+  createAdmin(request: CreateAdminRequest): Observable<CreateAdminResponse> {
+    return this.httpClient.post<CreateAdminResponse>(`${API_BASE_URL}/admins`, request);
   }
 
   updateAdminStatus(id: number, isActive: boolean): Observable<AdminUser> {
