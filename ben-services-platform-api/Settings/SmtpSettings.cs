@@ -10,13 +10,18 @@ public class SmtpSettings
     public string FromName { get; set; } = "Ben's Services";
     public string FrontendLoginUrl { get; set; } = "http://localhost:4200/login";
 
+    public bool IsConfiguredForCredentialEmails()
+    {
+        return !string.IsNullOrWhiteSpace(Host)
+            && Port > 0
+            && !string.IsNullOrWhiteSpace(User)
+            && !string.IsNullOrWhiteSpace(Password)
+            && !string.IsNullOrWhiteSpace(FromEmail);
+    }
+
     public void ValidateForCredentialEmails()
     {
-        if (string.IsNullOrWhiteSpace(Host)
-            || Port <= 0
-            || string.IsNullOrWhiteSpace(User)
-            || string.IsNullOrWhiteSpace(Password)
-            || string.IsNullOrWhiteSpace(FromEmail))
+        if (!IsConfiguredForCredentialEmails())
         {
             throw new InvalidOperationException("SMTP settings are incomplete. Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_EMAIL.");
         }

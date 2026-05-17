@@ -10,7 +10,14 @@
 
   <mat-card class="apply-card">
     <form [formGroup]="applicationForm" (ngSubmit)="submitApplication()" novalidate>
+      <div class="submission-guidance" role="note" aria-label="Submission guidance">
+        <p class="guidance-title">Before You Submit</p>
+        <p>Complete all required fields and upload License, W-9, and Insurance / COI documents.</p>
+        <p>Additional notes are optional and can be used to help our review team.</p>
+      </div>
+
       <h2>Business Profile</h2>
+      <p class="section-hint">Tell us who you are and how we can contact your business.</p>
 
       <div class="form-grid">
         <mat-form-field appearance="outline">
@@ -23,6 +30,12 @@
           <mat-label>Business Name</mat-label>
           <input matInput formControlName="businessName" />
           <mat-error *ngIf="hasControlError('businessName', 'required')">Business name is required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Street Address</mat-label>
+          <input matInput formControlName="streetAddress" />
+          <mat-error *ngIf="hasControlError('streetAddress', 'required')">Street address is required.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
@@ -63,16 +76,18 @@
       </div>
 
       <h2>Coverage Area</h2>
+      <p class="section-hint">You can select multiple states. Cities will update automatically.</p>
 
       <div class="form-grid">
         <mat-form-field appearance="outline">
-          <mat-label>State</mat-label>
-          <mat-select formControlName="state">
+          <mat-label>States Covered</mat-label>
+          <mat-select formControlName="states" multiple>
             @for (state of stateOptions; track state) {
               <mat-option [value]="state">{{ state }}</mat-option>
             }
           </mat-select>
-          <mat-error *ngIf="hasControlError('state', 'required')">State is required.</mat-error>
+          <mat-hint>Select one or more states.</mat-hint>
+          <mat-error *ngIf="hasControlError('states', 'required')">At least one state is required.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="span-2">
@@ -86,6 +101,7 @@
               }
             }
           </mat-select>
+          <mat-hint *ngIf="!isCitySelectionDisabled()">Pick one or more cities from the selected states.</mat-hint>
           <mat-error *ngIf="hasControlError('citiesCovered', 'required')">
             At least one city covered is required.
           </mat-error>
@@ -94,11 +110,13 @@
         <mat-form-field appearance="outline">
           <mat-label>Zip Codes Covered</mat-label>
           <input matInput formControlName="zipCodes" placeholder="20001, 20002" />
+          <mat-hint>Use commas to separate multiple zip codes.</mat-hint>
           <mat-error *ngIf="hasControlError('zipCodes', 'required')">Zip codes are required.</mat-error>
         </mat-form-field>
       </div>
 
       <h2>Operations</h2>
+      <p class="section-hint">Share your operating availability and experience level.</p>
 
       <div class="form-grid">
         <mat-form-field appearance="outline">
@@ -123,15 +141,17 @@
         </div>
       </div>
 
-      <h2>Compliance Documents (Optional)</h2>
+      <h2>Compliance Documents</h2>
 
-      <p class="file-hint">Allowed file types: PDF, JPG, JPEG, PNG</p>
+      <p class="file-hint">Required documents: License, W-9, and Insurance / COI.</p>
+      <p class="file-hint">Allowed file types: PDF, JPG, JPEG, PNG (max 10 MB each).</p>
 
       <div class="form-grid">
         <div class="file-field span-2">
           <label for="license-upload">License Document</label>
           <input id="license-upload" type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event, 'license')" />
           <small *ngIf="selectedLicenseFileName">Selected: {{ selectedLicenseFileName }}</small>
+          <small class="field-error" *ngIf="licenseFileError">{{ licenseFileError }}</small>
         </div>
 
         <div class="file-field span-2">
@@ -143,30 +163,49 @@
             (change)="onFileSelected($event, 'insurance')"
           />
           <small *ngIf="selectedInsuranceFileName">Selected: {{ selectedInsuranceFileName }}</small>
+          <small class="field-error" *ngIf="insuranceFileError">{{ insuranceFileError }}</small>
         </div>
 
         <div class="file-field span-2">
           <label for="w9-upload">W-9 Document</label>
           <input id="w9-upload" type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event, 'w9')" />
           <small *ngIf="selectedW9FileName">Selected: {{ selectedW9FileName }}</small>
+          <small class="field-error" *ngIf="w9FileError">{{ w9FileError }}</small>
         </div>
 
         <mat-form-field appearance="outline" class="span-2">
-          <mat-label>Message / Additional Notes</mat-label>
-          <textarea matInput formControlName="message" rows="4"></textarea>
+          <mat-label>Message / Additional Notes (Optional)</mat-label>
+          <textarea
+            matInput
+            formControlName="message"
+            rows="4"
+            [maxlength]="messageMaxLength"
+            placeholder="Optional: add certifications, coverage notes, or any context that helps review your application."
+          ></textarea>
+          <mat-hint>This field is optional.</mat-hint>
+          <mat-hint align="end">{{ messageCharacterCount }}/{{ messageMaxLength }}</mat-hint>
+          <mat-error *ngIf="hasControlError('message', 'maxlength')">
+            Message cannot exceed {{ messageMaxLength }} characters.
+          </mat-error>
         </mat-form-field>
       </div>
 
-      <p class="inline-error" *ngIf="submissionError">{{ submissionError }}</p>
+      <div class="submit-wrap">
+        <p class="inline-error" *ngIf="submissionError">{{ submissionError }}</p>
+        <p class="submit-helper" *ngIf="!submissionError && !isSubmitting">
+          We’ll email you after submission and again once the review is completed.
+        </p>
+        <p class="submit-helper" *ngIf="isSubmitting">Uploading documents and submitting your application...</p>
 
-      <button mat-flat-button color="primary" type="submit" [disabled]="isSubmitting">
-        @if (isSubmitting) {
-          <mat-spinner diameter="18" />
-          <span>Submitting...</span>
-        } @else {
-          <span>Submit Application</span>
-        }
-      </button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="isSubmitting">
+          @if (isSubmitting) {
+            <mat-spinner diameter="18" />
+            <span>Submitting Application...</span>
+          } @else {
+            <span>Submit Application</span>
+          }
+        </button>
+      </div>
     </form>
   </mat-card>
 </section>

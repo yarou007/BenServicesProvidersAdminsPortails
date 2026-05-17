@@ -194,6 +194,7 @@
 
             <div class="provider-row-card__location-services">
               <p class="location-main">{{ provider.city }}, {{ provider.state }}</p>
+              <p class="location-sub">States: {{ (provider.states ?? []).length ? (provider.states ?? []).join(', ') : (provider.state || 'N/A') }}</p>
               <p class="location-sub">{{ provider.region }} Region</p>
               <p class="location-sub">ZIP: {{ getZipPreview(provider) }}</p>
               <div class="service-tags">

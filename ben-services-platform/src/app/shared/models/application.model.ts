@@ -14,10 +14,12 @@ export interface ProviderApplication {
   userId?: number | null;
   fullName: string;
   businessName: string;
+  streetAddress?: string;
   phone: string;
   email: string;
   serviceType: ServiceType;
   servicesOffered: string[];
+  states?: string[];
   citiesCovered: string[];
   city: string;
   state: string;
@@ -48,11 +50,12 @@ export interface ProviderApplicationSubmitPayload {
   email: string;
   fullName: string;
   businessName: string;
+  streetAddress: string;
   phone: string;
   serviceType: ServiceType;
   servicesOffered: string[];
+  states: string[];
   citiesCovered: string[];
-  state: string;
   zipCodes: string[];
   yearsOfExperience: number;
   emergencyService: boolean;

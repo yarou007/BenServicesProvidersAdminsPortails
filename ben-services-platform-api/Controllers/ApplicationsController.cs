@@ -144,12 +144,23 @@ public class ApplicationsController(
             out var normalizedEmail,
             out var normalizedBusinessName,
             out var servicesOffered,
+            out var statesCovered,
             out var citiesCovered,
             out var zipCodes);
 
         if (validationError is not null)
         {
             return BadRequest(new { message = validationError });
+        }
+
+        var missingComplianceDocumentErrors = GetMissingComplianceDocumentErrors(request);
+        if (missingComplianceDocumentErrors.Count > 0)
+        {
+            return BadRequest(new
+            {
+                message = "Missing required compliance documents.",
+                errors = missingComplianceDocumentErrors
+            });
         }
 
         var existingOpenApplication = await dbContext.ProviderApplications
@@ -174,13 +185,15 @@ public class ApplicationsController(
         {
             FullName = request.FullName.Trim(),
             BusinessName = normalizedBusinessName,
+            StreetAddress = request.StreetAddress.Trim(),
             Phone = request.Phone.Trim(),
             Email = normalizedEmail,
             ServiceType = NormalizeServiceType(request.ServiceType),
             ServicesOfferedJson = JsonArrayMapper.Serialize(servicesOffered),
+            StatesJson = JsonArrayMapper.Serialize(statesCovered),
             CitiesCoveredJson = JsonArrayMapper.Serialize(citiesCovered),
             City = citiesCovered[0],
-            State = request.State.Trim().ToUpperInvariant(),
+            State = statesCovered[0],
             ZipCodesJson = JsonArrayMapper.Serialize(zipCodes),
             YearsOfExperience = request.YearsOfExperience,
             EmergencyService = request.EmergencyService,
@@ -221,19 +234,7 @@ public class ApplicationsController(
                 normalizedBusinessName);
 
             await dbContext.SaveChangesAsync();
-
-            await emailService.SendProviderApplicationReceivedAsync(
-                application.FullName,
-                application.Email);
-
             await transaction.CommitAsync();
-
-            return Ok(new ProviderApplicationSubmissionResponseDto
-            {
-                ApplicationId = application.Id,
-                Status = application.Status,
-                Message = "Application submitted successfully and is pending admin review."
-            });
         }
         catch (Exception exception)
         {
@@ -251,6 +252,33 @@ public class ApplicationsController(
                 detail: "An unexpected error occurred while submitting the application.",
                 statusCode: StatusCodes.Status500InternalServerError);
         }
+
+        var emailDeliveryFailed = false;
+
+        try
+        {
+            await emailService.SendProviderApplicationReceivedAsync(
+                application.FullName,
+                application.Email);
+        }
+        catch (Exception exception)
+        {
+            emailDeliveryFailed = true;
+            logger.LogWarning(
+                exception,
+                "Provider application submitted but confirmation email failed. ApplicationId={ApplicationId}, Email={Email}",
+                application.Id,
+                normalizedEmail);
+        }
+
+        return Ok(new ProviderApplicationSubmissionResponseDto
+        {
+            ApplicationId = application.Id,
+            Status = application.Status,
+            Message = emailDeliveryFailed
+                ? "Application submitted successfully and is pending admin review. Confirmation email could not be sent at this time."
+                : "Application submitted successfully and is pending admin review."
+        });
     }
 
     [HttpPost("{id:int}/mark-under-review")]
@@ -609,10 +637,12 @@ public class ApplicationsController(
 
         provider.FullName = application.FullName;
         provider.BusinessName = application.BusinessName;
+        provider.StreetAddress = application.StreetAddress;
         provider.Phone = application.Phone;
         provider.Email = application.Email;
         provider.ServiceType = application.ServiceType;
         provider.ServicesOfferedJson = application.ServicesOfferedJson;
+        provider.StatesJson = application.StatesJson;
         provider.City = application.City;
         provider.State = application.State;
         provider.ZipCodesJson = application.ZipCodesJson;
@@ -628,13 +658,59 @@ public class ApplicationsController(
         provider.AdminComments = string.IsNullOrWhiteSpace(application.AdminNotes)
             ? $"Imported from provider application #{application.Id}."
             : application.AdminNotes;
-        provider.W9FilePath = application.W9FileUrl;
-        provider.CoiFilePath = application.InsuranceFileUrl;
-        provider.W9UploadedAt = string.IsNullOrWhiteSpace(application.W9FileUrl) ? provider.W9UploadedAt : now;
-        provider.CoiUploadedAt = string.IsNullOrWhiteSpace(application.InsuranceFileUrl) ? provider.CoiUploadedAt : now;
         provider.CreatedAt = provider.CreatedAt == default ? now : provider.CreatedAt;
         provider.UpdatedAt = now;
         provider.VerifiedAt ??= now;
+
+        await dbContext.SaveChangesAsync();
+
+        var shouldImportW9 =
+            !string.IsNullOrWhiteSpace(application.W9FileUrl)
+            && (string.IsNullOrWhiteSpace(provider.W9FilePath)
+                || provider.W9FilePath.StartsWith("uploads/provider-applications/", StringComparison.OrdinalIgnoreCase));
+        if (shouldImportW9)
+        {
+            var importedW9Path = await CopyApplicationDocumentToProviderAsync(
+                application.Id,
+                provider.Id,
+                application.W9FileUrl,
+                "w9");
+            if (!string.IsNullOrWhiteSpace(importedW9Path))
+            {
+                provider.W9FilePath = importedW9Path;
+                provider.W9UploadedAt = now;
+            }
+            else if (string.IsNullOrWhiteSpace(provider.W9FilePath))
+            {
+                // Keep legacy references for backward compatibility when copy is not possible.
+                provider.W9FilePath = application.W9FileUrl;
+                provider.W9UploadedAt ??= now;
+            }
+        }
+
+        var shouldImportCoi =
+            !string.IsNullOrWhiteSpace(application.InsuranceFileUrl)
+            && (string.IsNullOrWhiteSpace(provider.CoiFilePath)
+                || provider.CoiFilePath.StartsWith("uploads/provider-applications/", StringComparison.OrdinalIgnoreCase));
+        if (shouldImportCoi)
+        {
+            var importedCoiPath = await CopyApplicationDocumentToProviderAsync(
+                application.Id,
+                provider.Id,
+                application.InsuranceFileUrl,
+                "coi");
+            if (!string.IsNullOrWhiteSpace(importedCoiPath))
+            {
+                provider.CoiFilePath = importedCoiPath;
+                provider.CoiUploadedAt = now;
+            }
+            else if (string.IsNullOrWhiteSpace(provider.CoiFilePath))
+            {
+                // Keep legacy references for backward compatibility when copy is not possible.
+                provider.CoiFilePath = application.InsuranceFileUrl;
+                provider.CoiUploadedAt ??= now;
+            }
+        }
 
         await dbContext.SaveChangesAsync();
 
@@ -762,12 +838,24 @@ public class ApplicationsController(
         out string normalizedEmail,
         out string normalizedBusinessName,
         out string[] servicesOffered,
+        out string[] statesCovered,
         out string[] citiesCovered,
         out string[] zipCodes)
     {
         normalizedEmail = request.Email.Trim().ToLowerInvariant();
         normalizedBusinessName = request.BusinessName.Trim();
         servicesOffered = ParseStringArray(request.ServicesOfferedJson);
+        statesCovered = ParseStringArray(request.StatesJson);
+        if (statesCovered.Length == 0 && !string.IsNullOrWhiteSpace(request.State))
+        {
+            statesCovered = [request.State];
+        }
+
+        statesCovered = statesCovered
+            .Select(item => item.Trim().ToUpperInvariant())
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         citiesCovered = ParseStringArray(request.CitiesCoveredJson);
         zipCodes = ParseStringArray(request.ZipCodesJson);
 
@@ -779,6 +867,11 @@ public class ApplicationsController(
         if (string.IsNullOrWhiteSpace(normalizedBusinessName))
         {
             return "Business name is required.";
+        }
+
+        if (string.IsNullOrWhiteSpace(request.StreetAddress))
+        {
+            return "Street address is required.";
         }
 
         if (string.IsNullOrWhiteSpace(request.Phone))
@@ -801,9 +894,9 @@ public class ApplicationsController(
             return "At least one service offered is required.";
         }
 
-        if (string.IsNullOrWhiteSpace(request.State))
+        if (statesCovered.Length == 0)
         {
-            return "State is required.";
+            return "At least one state is required.";
         }
 
         if (citiesCovered.Length == 0)
@@ -845,6 +938,28 @@ public class ApplicationsController(
         }
 
         return null;
+    }
+
+    private static Dictionary<string, string> GetMissingComplianceDocumentErrors(ProviderApplicationApplyRequest request)
+    {
+        var errors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (request.LicenseDocument is null)
+        {
+            errors["licenseDocument"] = "License document is required.";
+        }
+
+        if (request.W9Document is null)
+        {
+            errors["w9Document"] = "W-9 document is required.";
+        }
+
+        if (request.InsuranceDocument is null)
+        {
+            errors["coiDocument"] = "Insurance / COI document is required.";
+        }
+
+        return errors;
     }
 
     private static string? ValidateFile(IFormFile? file, string label)
@@ -907,6 +1022,73 @@ public class ApplicationsController(
         }
 
         return Path.Combine(relativeDirectory, generatedFileName).Replace('\\', '/');
+    }
+
+    private async Task<string?> CopyApplicationDocumentToProviderAsync(
+        int applicationId,
+        int providerId,
+        string? applicationRelativePath,
+        string prefix)
+    {
+        if (string.IsNullOrWhiteSpace(applicationRelativePath))
+        {
+            return null;
+        }
+
+        if (!TryResolveApplicationDocumentPath(
+                applicationId,
+                applicationRelativePath,
+                out var applicationAbsolutePath,
+                out _,
+                out var pathFailureReason))
+        {
+            logger.LogWarning(
+                "Skipping provider document copy due to invalid application path. ApplicationId={ApplicationId}, ProviderId={ProviderId}, RelativePath={RelativePath}, Reason={Reason}",
+                applicationId,
+                providerId,
+                applicationRelativePath,
+                pathFailureReason);
+            return null;
+        }
+
+        if (!System.IO.File.Exists(applicationAbsolutePath))
+        {
+            logger.LogWarning(
+                "Skipping provider document copy because source file does not exist. ApplicationId={ApplicationId}, ProviderId={ProviderId}, RelativePath={RelativePath}",
+                applicationId,
+                providerId,
+                applicationRelativePath);
+            return null;
+        }
+
+        try
+        {
+            var extension = Path.GetExtension(applicationAbsolutePath).ToLowerInvariant();
+            var relativeDirectory = Path.Combine("uploads", "providers", providerId.ToString());
+            var absoluteDirectory = Path.Combine(environment.ContentRootPath, relativeDirectory);
+            Directory.CreateDirectory(absoluteDirectory);
+
+            var generatedFileName = $"{prefix}-{Guid.NewGuid():N}{extension}";
+            var providerAbsolutePath = Path.Combine(absoluteDirectory, generatedFileName);
+
+            await using (var sourceStream = new FileStream(applicationAbsolutePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            await using (var destinationStream = new FileStream(providerAbsolutePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                await sourceStream.CopyToAsync(destinationStream);
+            }
+
+            return Path.Combine(relativeDirectory, generatedFileName).Replace('\\', '/');
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Failed to copy application document into provider storage. ApplicationId={ApplicationId}, ProviderId={ProviderId}, RelativePath={RelativePath}",
+                applicationId,
+                providerId,
+                applicationRelativePath);
+            return null;
+        }
     }
 
     private void DeleteApplicationUploadDirectoryIfExists(int applicationId)

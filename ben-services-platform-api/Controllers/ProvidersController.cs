@@ -124,7 +124,13 @@ public class ProvidersController(
             return NotFound(new { message = "Document metadata is missing for this provider." });
         }
 
-        if (!TryResolveProviderDocumentPath(id, relativePath, out var absolutePath, out var normalizedRelativePath, out var pathFailureReason))
+        if (!TryResolveProviderDocumentPath(
+                id,
+                relativePath,
+                out var absolutePath,
+                out var normalizedRelativePath,
+                out var pathFailureReason,
+                allowLegacyApplicationPath: true))
         {
             logger.LogWarning(
                 "Provider document path is invalid. ProviderId={ProviderId}, DocumentType={DocumentType}, RelativePath={RelativePath}, Reason={Reason}",
@@ -549,7 +555,13 @@ public class ProvidersController(
             return (false, null, null);
         }
 
-        if (!TryResolveProviderDocumentPath(provider.Id, relativePath, out var absolutePath, out _, out _))
+        if (!TryResolveProviderDocumentPath(
+                provider.Id,
+                relativePath,
+                out var absolutePath,
+                out _,
+                out _,
+                allowLegacyApplicationPath: true))
         {
             return (false, null, null);
         }
@@ -573,7 +585,8 @@ public class ProvidersController(
         string relativePath,
         out string absolutePath,
         out string normalizedRelativePath,
-        out string failureReason)
+        out string failureReason,
+        bool allowLegacyApplicationPath = false)
     {
         absolutePath = string.Empty;
         normalizedRelativePath = relativePath.Trim().Replace('\\', '/');
@@ -591,33 +604,55 @@ public class ProvidersController(
             return false;
         }
 
-        var expectedPrefix = $"uploads/providers/{providerId}/";
-        if (!normalizedRelativePath.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            failureReason = $"Path must start with '{expectedPrefix}'.";
-            return false;
-        }
-
         var combinedPath = Path.Combine(
             environment.ContentRootPath,
             normalizedRelativePath.Replace('/', Path.DirectorySeparatorChar));
         var fullPath = Path.GetFullPath(combinedPath);
+
         var providerRoot = Path.GetFullPath(
             Path.Combine(environment.ContentRootPath, "uploads", "providers", providerId.ToString()));
-
-        var expectedRootPrefix = providerRoot + Path.DirectorySeparatorChar;
-        var isInsideRoot =
-            fullPath.StartsWith(expectedRootPrefix, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fullPath, providerRoot, StringComparison.OrdinalIgnoreCase);
-
-        if (!isInsideRoot)
+        var expectedProviderPrefix = $"uploads/providers/{providerId}/";
+        if (normalizedRelativePath.StartsWith(expectedProviderPrefix, StringComparison.OrdinalIgnoreCase))
         {
-            failureReason = "Path escapes provider upload root.";
-            return false;
+            var expectedProviderRootPrefix = providerRoot + Path.DirectorySeparatorChar;
+            var isInsideProviderRoot =
+                fullPath.StartsWith(expectedProviderRootPrefix, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(fullPath, providerRoot, StringComparison.OrdinalIgnoreCase);
+
+            if (!isInsideProviderRoot)
+            {
+                failureReason = "Path escapes provider upload root.";
+                return false;
+            }
+
+            absolutePath = fullPath;
+            return true;
         }
 
-        absolutePath = fullPath;
-        return true;
+        if (allowLegacyApplicationPath
+            && normalizedRelativePath.StartsWith("uploads/provider-applications/", StringComparison.OrdinalIgnoreCase))
+        {
+            var applicationsRoot = Path.GetFullPath(
+                Path.Combine(environment.ContentRootPath, "uploads", "provider-applications"));
+            var expectedApplicationsRootPrefix = applicationsRoot + Path.DirectorySeparatorChar;
+            var isInsideApplicationsRoot =
+                fullPath.StartsWith(expectedApplicationsRootPrefix, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(fullPath, applicationsRoot, StringComparison.OrdinalIgnoreCase);
+
+            if (!isInsideApplicationsRoot)
+            {
+                failureReason = "Path escapes provider-application upload root.";
+                return false;
+            }
+
+            absolutePath = fullPath;
+            return true;
+        }
+
+        failureReason = allowLegacyApplicationPath
+            ? $"Path must start with '{expectedProviderPrefix}' or 'uploads/provider-applications/'."
+            : $"Path must start with '{expectedProviderPrefix}'.";
+        return false;
     }
 
     private static string GetContentTypeFromExtension(string extension)

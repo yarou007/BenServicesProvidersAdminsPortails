@@ -8,10 +8,12 @@ import { Provider, ProviderFilters, VerificationStatus } from '../models/provide
 export interface ProviderCreateInput {
   fullName: string;
   businessName: string;
+  streetAddress?: string;
   phone: string;
   email: string;
   serviceType: Provider['serviceType'];
   servicesOffered: string[];
+  states?: string[];
   city: string;
   state: string;
   zipCodes: string[];
@@ -227,7 +229,10 @@ export class ProviderService {
 
           const matchesServiceType = filters.serviceType === 'All' || provider.serviceType === filters.serviceType;
           const matchesCity = !filters.city || provider.city.toLowerCase().includes(filters.city.toLowerCase());
-          const matchesState = !filters.state || provider.state.toLowerCase().includes(filters.state.toLowerCase());
+          const providerStates = provider.states?.length ? provider.states : [provider.state];
+          const matchesState =
+            !filters.state ||
+            providerStates.some((state) => state.toLowerCase().includes(filters.state.toLowerCase()));
           const matchesRegion = !filters.region || provider.region.toLowerCase().includes(filters.region.toLowerCase());
           const matchesZip = !filters.zip || provider.zipCodes.some((zip) => zip.includes(filters.zip.trim()));
 
@@ -327,10 +332,12 @@ export class ProviderService {
     const formData = new FormData();
     formData.append('FullName', providerInput.fullName);
     formData.append('BusinessName', providerInput.businessName);
+    formData.append('StreetAddress', providerInput.streetAddress ?? '');
     formData.append('Phone', providerInput.phone);
     formData.append('Email', providerInput.email);
     formData.append('ServiceType', providerInput.serviceType);
     providerInput.servicesOffered.forEach((service) => formData.append('ServicesOffered', service));
+    (providerInput.states ?? []).forEach((state) => formData.append('States', state));
     formData.append('City', providerInput.city);
     formData.append('State', providerInput.state);
     providerInput.zipCodes.forEach((zip) => formData.append('ZipCodes', zip));

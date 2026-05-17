@@ -6,10 +6,12 @@ public class ProviderApplicationEntity
     public int? UserId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
+    public string? StreetAddress { get; set; }
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string ServiceType { get; set; } = "Locksmith";
     public string ServicesOfferedJson { get; set; } = "[]";
+    public string? StatesJson { get; set; }
     public string CitiesCoveredJson { get; set; } = "[]";
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
